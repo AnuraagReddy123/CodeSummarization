@@ -10,6 +10,7 @@ from Layers import TreeLSTMLayer
 class Encoder(tf.keras.Model):
     '''
     Class to encode the pull requests
+    Fix number of commits and trees
     '''
     def __init__(self, hidden_dim, vocab_size, embed_dim):
         '''
@@ -40,6 +41,8 @@ class Encoder(tf.keras.Model):
         self.dense_mergeast_h = Dense(hidden_dim, name='dense_merge')
         self.dense_mergeast_c = Dense(hidden_dim, name='dense_merge')
         self.dense_mergeallast = Dense(1, name='dense_mergeallast')
+        self.dense_mergecommits = Dense(1, name='dense_mergecommits')
+
 
         self.dense_merge_2 = Dense(hidden_dim, name='dense_merge_2')
 
@@ -112,13 +115,19 @@ class Encoder(tf.keras.Model):
             c_commits.append(c_commit)
 
         enc_commits = tf.stack(enc_commits, axis=0) # Shape: (num_commits, max_len, hidden_dim)
-        h_commits = tf.stack(h_commits, axis=0) # Shape: (num_commits, 3*hidden_dim)
-        c_commits = tf.stack(c_commits, axis=0) # Shape: (num_commits, 3*hidden_dim)
+        h_commits = tf.stack(h_commits, axis=0) # Shape: (num_commits, 2*hidden_dim + num_trees)
+        c_commits = tf.stack(c_commits, axis=0) # Shape: (num_commits, 2*hidden_dim + num_trees)
+
+        # Merge commits
+        h_commits = self.dense_mergecommits(h_commits) # Shape: (num_commits, 1)
+        c_commits = self.dense_mergecommits(c_commits) # Shape: (num_commits, 1)
+
+        # Reshape to single dimension array
+        h_commits = tf.reshape(h_commits, (-1,)) # Shape: (num_commits,)
+        c_commits = tf.reshape(c_commits, (-1,)) # Shape: (num_commits,)
 
         # Reduce mean
         enc_commits = tf.math.reduce_mean(enc_commits, axis=0) # Shape: (max_len, hidden_dim)
-        h_commits = tf.math.reduce_mean(h_commits, axis=0) # Shape: (3*hidden_dim,)
-        c_commits = tf.math.reduce_mean(c_commits, axis=0) # Shape: (3*hidden_dim,)
 
         inp_isstitles = pr['issue_titles'] # Shape: (max_len, )
 
@@ -131,8 +140,9 @@ class Encoder(tf.keras.Model):
         c_isstitles = fwd_c + bwd_c # Shape: (hidden_dim,)
 
         # Concatenate
-        h = tf.concat([h_commits, h_isstitles], axis=0) # Shape: (4*hidden_dim,)
-        c = tf.concat([c_commits, c_isstitles], axis=0) # Shape: (4*hidden_dim,)
+        h = tf.concat([h_isstitles, h_commits], axis=0) # Shape: (hidden_dim + num_commits,)
+        c = tf.concat([c_isstitles, c_commits], axis=0) # Shape: (hidden_dim + num_commits,)
+        
         enc = tf.concat([enc_commits, enc_isstitles], axis=0) # Shape: (2*max_len, hidden_dim)
 
         return enc, h, c
