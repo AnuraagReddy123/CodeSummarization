@@ -3,6 +3,7 @@ from keras.layers import Embedding, LSTM, Dense, Concatenate, Bidirectional
 from Utils.Structures import Node
 from Utils.Utils import pad_tensor
 import keras
+import numpy as np
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
 from Layers import TreeLSTMLayer
@@ -31,9 +32,9 @@ class Encoder(tf.keras.Model):
         self.emb_isstitles = Embedding(vocab_size, embed_dim, name='isstitles_emb')
 
         # Encodings
-        self.enc_commit = Bidirectional(LSTM(units=hidden_dim, return_sequences=True, return_state=True), name='commit_enc', merge_mode='sum')
-        self.enc_sc = Bidirectional(LSTM(units=hidden_dim, return_sequences=True, return_state=True), name='sc_enc', merge_mode='sum')
-        self.enc_isstitles = Bidirectional(LSTM(units=hidden_dim, return_sequences=True, return_state=True), name='isstitles_enc', merge_mode='sum')
+        self.enc_commit = Bidirectional(LSTM(units=hidden_dim, return_sequences=True, return_state=True), name='commit_enc', merge_mode='concat')
+        self.enc_sc = Bidirectional(LSTM(units=hidden_dim, return_sequences=True, return_state=True), name='sc_enc', merge_mode='concat')
+        self.enc_isstitles = Bidirectional(LSTM(units=hidden_dim, return_sequences=True, return_state=True), name='isstitles_enc', merge_mode='concat')
         self.enc_ast = TreeLSTMLayer(hidden_dim, vocab_size, embed_dim)
 
         self.dense_h = Dense(hidden_dim, name='dense_h')
@@ -42,13 +43,30 @@ class Encoder(tf.keras.Model):
         self.dense_mergeast_c = Dense(hidden_dim, name='dense_merge')
         self.dense_mergeallast = Dense(1, name='dense_mergeallast')
         self.dense_mergecommits = Dense(1, name='dense_mergecommits')
-
-
-        self.dense_merge_2 = Dense(hidden_dim, name='dense_merge_2')
+        self.dense_mergeh = Dense(hidden_dim, name='dense_mergeh')
+        self.dense_mergec = Dense(hidden_dim, name='dense_mergec')
 
     
     def call(self, batch_pr):
-        pass
+        '''
+        Parameters:
+            batch_pr : Batch of prs
+        '''
+        enclist = []
+        hlist = []
+        clist = []
+
+        for pr in batch_pr:
+            enc, h, c = self.encode_pr(pr)
+            enclist.append(enc)
+            hlist.append(h)
+            clist.append(c)
+
+        
+        hlist = tf.stack(hlist)
+        clist = tf.stack(clist)
+
+        return hlist, clist
 
     def encode(self, pr):
         '''
@@ -75,13 +93,13 @@ class Encoder(tf.keras.Model):
             emb_sc = self.emb_sc(inp_sc) # Shape: (max_len, embed_dim)
 
             # Encoding
-            enc_commit, h_fwd, c_fwd, h_bwd, c_bwd = self.enc_commit(emb_commit) # Shape: (max_len, hidden_dim), (hidden_dim,), (hidden_dim,)
-            h_commit = h_fwd + h_bwd # Shape: (hidden_dim,)
-            c_commit = c_fwd + c_bwd # Shape: (hidden_dim,)
+            enc_commit, h_fwd, c_fwd, h_bwd, c_bwd = self.enc_commit(emb_commit) # Shape: (max_len, 2*hidden_dim), (hidden_dim,), (hidden_dim,), (hidden_dim,), (hidden_dim,)
+            h_commit = Concatenate()([h_fwd, h_bwd]) # Shape: (2*hidden_dim,)
+            c_commit = Concatenate()([c_fwd, c_bwd]) # Shape: (2*hidden_dim,)
         
-            enc_sc, h_fwd, c_fwd, h_bwd, c_bwd = self.enc_sc(emb_sc) # Shape: (max_len, hidden_dim), (hidden_dim,), (hidden_dim,)
-            h_sc = h_fwd + h_bwd # Shape: (hidden_dim,)
-            c_sc = c_fwd + c_bwd # Shape: (hidden_dim,)
+            enc_sc, h_fwd, c_fwd, h_bwd, c_bwd = self.enc_sc(emb_sc) # Shape: (max_len, 2*hidden_dim), (hidden_dim,), (hidden_dim,), (hidden_dim,), (hidden_dim,)
+            h_sc = Concatenate()([h_fwd, h_bwd]) # Shape: (2*hidden_dim,)
+            c_sc = Concatenate()([c_fwd, c_bwd]) # Shape: (2*hidden_dim,)
 
             # AST Encoding
             h_asts = []
@@ -106,8 +124,8 @@ class Encoder(tf.keras.Model):
             c_asts = tf.reshape(c_asts, (-1,)) # Shape: (num_trees,)
 
             # Concatenate all artifacts in commit
-            h_commit = tf.concat([h_commit, h_sc, h_asts], axis=0) # Shape: (2*hidden_dim + num_trees,)
-            c_commit = tf.concat([c_commit, c_sc, c_asts], axis=0) # Shape: (2*hidden_dim + num_trees,)
+            h_commit = tf.concat([h_commit, h_sc, h_asts], axis=0) # Shape: (4*hidden_dim + num_trees,)
+            c_commit = tf.concat([c_commit, c_sc, c_asts], axis=0) # Shape: (4*hidden_dim + num_trees,)
 
             enc_commits.append(enc_commit)
             enc_commits.append(enc_sc)
@@ -115,8 +133,8 @@ class Encoder(tf.keras.Model):
             c_commits.append(c_commit)
 
         enc_commits = tf.stack(enc_commits, axis=0) # Shape: (num_commits, max_len, hidden_dim)
-        h_commits = tf.stack(h_commits, axis=0) # Shape: (num_commits, 2*hidden_dim + num_trees)
-        c_commits = tf.stack(c_commits, axis=0) # Shape: (num_commits, 2*hidden_dim + num_trees)
+        h_commits = tf.stack(h_commits, axis=0) # Shape: (num_commits, 4*hidden_dim + num_trees)
+        c_commits = tf.stack(c_commits, axis=0) # Shape: (num_commits, 4*hidden_dim + num_trees)
 
         # Merge commits
         h_commits = self.dense_mergecommits(h_commits) # Shape: (num_commits, 1)
@@ -145,52 +163,16 @@ class Encoder(tf.keras.Model):
         
         enc = tf.concat([enc_commits, enc_isstitles], axis=0) # Shape: (2*max_len, hidden_dim)
 
+        # Merge
+        h = self.dense_mergeh(h) # Shape: (hidden_dim, )
+        c = self.dense_mergec(c) # Shape: (hidden_dim, )
+        
         return enc, h, c
 
-        
 if __name__ == '__main__':
-    commit = tf.random.uniform((2, 100), minval=0, maxval=100, dtype=tf.int32)
-    sc = tf.random.uniform((2, 100), minval=0, maxval=100, dtype=tf.int32)
-    isstitles = tf.random.uniform((2, 100), minval=0, maxval=100, dtype=tf.int32)
+    # Generate random data
+    pr = {}
+    pr['issue_titles'] = np.random.randint(0, 100, (100, ))
+    pr['commits'] = {}
     
-    root1 = Node(0)
-    root1.add_child(Node(1))
-    root1.add_child(Node(2))
-    root1.children[0].add_child(Node(3))
-    root1.children[0].add_child(Node(4))
 
-    root2 = Node(0)
-    root2.add_child(Node(1))
-    root2.add_child(Node(2))
-
-    root3 = Node(0)
-    root3.add_child(Node(1))
-    root3.add_child(Node(2))
-    root3.children[0].add_child(Node(5))
-
-    root4 = Node(0)
-    root4.add_child(Node(1))
-    root4.add_child(Node(2))
-    root4.children[0].add_child(Node(5))
-
-    root5 = Node(0)
-    root5.add_child(Node(1))
-    root5.add_child(Node(6))
-
-    root6 = Node(0)
-    root6.add_child(Node(1))
-    root6.add_child(Node(6))
-
-    root7 = Node(0)
-    root7.add_child(Node(1))
-    root7.add_child(Node(6))
-
-    root8 = Node(0)
-    root8.add_child(Node(1))
-    root8.add_child(Node(6))
-
-    trees = [[[root1, root2], [root3, root4]], [[root5, root6]]]
-    encoder = Encoder(128, 100, 256)
-    x = encoder(commit, sc, trees, isstitles)
-    for i in encoder.trainable_variables:
-        print(i.name, i.shape)
