@@ -223,6 +223,7 @@ if __name__ == '__main__':
         
     # Create model
     encoder = Encoder(128, 150, 256)
-    h, c = encoder([pr])
+    pr2 = pr.copy()
+    h, c = encoder([pr, pr2])
     print(h.shape)
     print(c.shape)
