@@ -7,6 +7,11 @@ class Node:
         self.c = None
         self.out = None
     
+    def add_children(self, children):
+        
+        self.children.extend(children)
+    
     def add_child(self, child):
+
         self.children.append(child)
         
