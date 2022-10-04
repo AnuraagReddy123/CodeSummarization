@@ -7,6 +7,8 @@ import tensorflow as tf
 import numpy as np
 import os
 import time
+from load_data import load_data
+
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
 
 def generate_batch(dataset):
@@ -14,9 +16,35 @@ def generate_batch(dataset):
     Generate a batch
 
     Returns:
-        A batch
+        A batch (batch_pr, batch_prdesc_shift, batch_prdesc)
     '''
-    pass
+
+    batch_size = 2
+
+
+    keys = dataset.keys()
+    N = len(keys)
+
+    for i in range(0, N, batch_size):
+
+        batch_pr = []
+        batch_prdesc_shift = []
+        batch_prdesc = []
+
+        for j in range(min(batch_size, N-i)):
+
+            key = keys[i+j]
+
+            pr_desc: str = dataset[key]['body']
+            del dataset[key]['body']
+
+            batch_pr.append(dataset[key])
+            batch_prdesc_shift.append(['_START'].extend(pr_desc.split()))
+            batch_prdesc.append(pr_desc.split())
+
+        yield (batch_pr, batch_prdesc_shift, batch_prdesc)
+
+
 
 
 @tf.function
@@ -96,7 +124,8 @@ def main_train(encoder:Encoder, decoder:Decoder, dataset, optimizer, epochs, che
 
 if __name__ == '__main__':
     # Load dataset
-    dataset = np.load('dataset.npy', allow_pickle=True)
+    # dataset = np.load('dataset.npy', allow_pickle=True)
+    dataset = load_data('sample_dataset_proc.json')
 
     # Create encoder and decoder
     encoder = Encoder(hidden_dim=HIDDEN_DIM, vocab_size=VOCAB_SIZE, embedding_dim=EMBEDDING_DIM)
