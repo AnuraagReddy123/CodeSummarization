@@ -7,7 +7,22 @@ import tensorflow as tf
 import numpy as np
 import os
 import time
+import json
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
+
+def readfromjson(path):
+    '''
+    Read from json
+
+    Parameters:
+        path: The path
+
+    Returns:
+        The data
+    '''
+    with open(path, 'r') as f:
+        data = json.load(f)
+    return data
 
 def generate_batch(dataset):
     '''
