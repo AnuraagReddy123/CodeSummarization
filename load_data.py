@@ -3,9 +3,6 @@ import json
 from Model.Utils.Structures import Node 
 
 
-
-
-
 def _build_tree(node, adj):
 
     for child_id in adj[str(node.id)]['children']:
@@ -61,7 +58,7 @@ def load_data(file_name):
 
 
 
-
+'''
 data = load_data('sample_dataset_proc.json')
 
 root = data['elastic/elasticsearch_37964']['commits']["'df18d6b7d9d2236d1512f7476301ecda15b20401'"]['old_asts'][0]
@@ -80,7 +77,6 @@ def find_height(root):
 
 
 print(find_height(root))
-
-
+'''
 
 
