@@ -32,7 +32,7 @@ class TreeLSTMLayer(tf.keras.Model):
     
     def call(self, root:Node):
         def recurse(node:Node, hidden_states:list):
-            node.emb = self.emb(tf.constant([node.id]))
+            node.emb = self.emb(tf.constant([node.label]))
             if len(node.children) != 0:
                 child_h = []
                 child_c = []
