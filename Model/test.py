@@ -13,5 +13,3 @@ output, state_h, state_c = lstm(inputs)
 
 print("output", output)
 print("state_h", state_h)
-
-if output[]

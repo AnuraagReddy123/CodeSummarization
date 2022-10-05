@@ -2,6 +2,7 @@ class Node:
     def __init__(self, id:int):
         self.id = id
         self.children = []
+        self.label = None
         self.emb = None
         self.h = None
         self.c = None

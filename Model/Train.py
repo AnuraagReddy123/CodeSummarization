@@ -1,6 +1,6 @@
 from Encoder import Encoder
 from Decoder import Decoder
-from Loss import loss_fn, accuracy_fn
+from Loss import loss_func, accuracy_fn
 from Utils.Constants import *
 
 import tensorflow as tf
@@ -8,6 +8,7 @@ import numpy as np
 import os
 import time
 from load_data import load_data
+import json
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
 
@@ -36,7 +37,7 @@ def generate_batch(dataset):
     batch_size = 2
 
 
-    keys = dataset.keys()
+    keys = list(dataset.keys())
     N = len(keys)
 
     for i in range(0, N, batch_size):
@@ -86,7 +87,7 @@ def train_step(input_pr, target_prdesc_shift, target_prdesc, encoder: Encoder, d
         logits, _, _ = decoder(target_prdesc_shift, h_enc, c_enc)
 
         # Calculate loss and accuracy
-        loss = loss_fn(target_prdesc, logits)
+        loss = loss_func(target_prdesc, logits)
         accuracy = accuracy_fn(target_prdesc, logits)
 
     # Calculate gradients
@@ -139,11 +140,11 @@ def main_train(encoder:Encoder, decoder:Decoder, dataset, optimizer, epochs, che
 if __name__ == '__main__':
     # Load dataset
     # dataset = np.load('dataset.npy', allow_pickle=True)
-    dataset = load_data('sample_dataset_proc.json')
+    dataset = load_data(os.path.join('..', 'Data', 'sample_dataset_proc.json'))
 
     # Create encoder and decoder
-    encoder = Encoder(hidden_dim=HIDDEN_DIM, vocab_size=VOCAB_SIZE, embedding_dim=EMBEDDING_DIM)
-    decoder = Decoder(hidden_dim=HIDDEN_DIM, vocab_size=VOCAB_SIZE, embedding_dim=EMBEDDING_DIM)
+    encoder = Encoder(hidden_dim=HIDDEN_DIM, vocab_size=VOCAB_SIZE, embed_dim=EMBEDDING_DIM)
+    decoder = Decoder(hidden_dim=HIDDEN_DIM, vocab_size=VOCAB_SIZE, embed_dim=EMBEDDING_DIM)
 
     # Create optimizer
     optimizer = tf.keras.optimizers.Adam()
