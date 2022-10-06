@@ -60,8 +60,8 @@ class Encoder(tf.keras.Model):
         clist = []
 
         for pr in batch_pr:
-            enc, h, c = self.encode(pr)
-            enclist.append(enc)
+            h, c = self.encode(pr)
+            # enclist.append(enc)
             hlist.append(h)
             clist.append(c)
 
@@ -142,12 +142,12 @@ class Encoder(tf.keras.Model):
             h_commit = tf.squeeze(h_commit, axis=0) # Shape: (2*hidden_dim + num_trees,)
             c_commit = tf.squeeze(c_commit, axis=0) # Shape: (2*hidden_dim + num_trees,)
 
-            enc_commits.append(enc_commit)
-            enc_commits.append(enc_sc)
+            # enc_commits.append(enc_commit)
+            # enc_commits.append(enc_sc)
             h_commits.append(h_commit)
             c_commits.append(c_commit)
 
-        enc_commits = tf.stack(enc_commits, axis=0) # Shape: (num_commits, max_len, hidden_dim)
+        # enc_commits = tf.stack(enc_commits, axis=0) # Shape: (num_commits, max_len, hidden_dim)
         h_commits = tf.stack(h_commits, axis=0) # Shape: (num_commits, 4*hidden_dim + num_trees)
         c_commits = tf.stack(c_commits, axis=0) # Shape: (num_commits, 4*hidden_dim + num_trees)
 
@@ -164,9 +164,9 @@ class Encoder(tf.keras.Model):
         c_commits = tf.expand_dims(c_commits, axis=0) # Shape: (1, num_commits)
 
         # Reduce mean
-        enc_commits = tf.math.reduce_mean(enc_commits, axis=0) # Shape: (max_len, hidden_dim)
+        # enc_commits = tf.math.reduce_mean(enc_commits, axis=0) # Shape: (max_len, hidden_dim)
 
-        inp_isstitles = pr['issue_titles'] # Shape: (max_len, )
+        inp_isstitles = pr['issue_title'] # Shape: (max_len, )
 
         # Embedding
         emb_isstitles = self.emb_isstitles(inp_isstitles) # Shape: (max_len, embed_dim)
@@ -183,7 +183,7 @@ class Encoder(tf.keras.Model):
         h = Concatenate()([h_commits, h_isstitles]) # Shape: (1, 2*hidden_dim + num_commits)
         c = Concatenate()([c_commits, c_isstitles]) # Shape: (1, 2*hidden_dim + num_commits)
         
-        enc = tf.concat([enc_commits, enc_isstitles], axis=0) # Shape: (2*max_len, hidden_dim)
+        # enc = tf.concat([enc_commits, enc_isstitles], axis=0) # Shape: (2*max_len, hidden_dim)
 
         # Merge
         h = self.dense_mergeh(h) # Shape: (1, hidden_dim)
@@ -193,31 +193,31 @@ class Encoder(tf.keras.Model):
         h = tf.squeeze(h, axis=0) # Shape: (hidden_dim,)
         c = tf.squeeze(c, axis=0) # Shape: (hidden_dim,)
         
-        return enc, h, c
+        return h, c
 
 if __name__ == '__main__':
     # Generate random data
     pr = {}
-    pr['issue_titles'] = np.random.randint(0, 100, (100, ))
+    pr['issue_title'] = np.random.randint(0, 100, (85, ))
     pr['commits'] = {}
 
     for i in range(10):
         pr['commits'][i] = {}
         pr['commits'][i]['cm'] = np.random.randint(0, 100, (100, ))
-        pr['commits'][i]['comments'] = np.random.randint(0, 100, (100, ))
+        pr['commits'][i]['comments'] = np.array([2])
         
         pr['commits'][i]['old_asts'] = []
         pr['commits'][i]['new_asts'] = []
 
         for j in range(5):
-            root = Node(0)
-            root.add_child(Node(1))
-            root.add_child(Node(2))
+            root = Node(0, 0)
+            root.add_child(Node(1, 1))
+            root.add_child(Node(2, 2))
 
             pr['commits'][i]['old_asts'].append(root)
 
-            root = Node(0)
-            root.add_child(Node(1))
+            root = Node(0, 0)
+            root.add_child(Node(1, 1))
 
             pr['commits'][i]['new_asts'].append(root)
         
