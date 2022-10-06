@@ -24,40 +24,26 @@ def buid_tree(adj):
     return root
 
 
+# Loads the dataset, converts the json to Node structure
 def load_data(file_path):
 
-    # file_path = path.join('Data', file_name)
-
     with open(file_path) as f:
-
-        data = json.load(f)
+        dataset = json.load(f)
     
-    for id in data:
+    for key in dataset:
+        for commit_sha in dataset[key]['commits']:
 
-        for commit_sha in data[id]['commits']:
+            old_asts = dataset[key]['commits'][commit_sha]['old_asts']
+            dataset[key]['commits'][commit_sha]['old_asts'] = [buid_tree(old_ast) for old_ast in old_asts]
 
-            old_asts = []
+            new_asts = dataset[key]['commits'][commit_sha]['new_asts']
+            dataset[key]['commits'][commit_sha]['new_asts'] = [buid_tree(new_ast) for new_ast in new_asts]
 
-            for old_ast in data[id]['commits'][commit_sha]['old_asts']:
-                root = buid_tree(old_ast)
-                old_asts.append(root)
-            
-            data[id]['commits'][commit_sha]['old_asts'] = old_asts
+    return dataset
 
-            new_asts = []
 
-            for new_ast in data[id]['commits'][commit_sha]['new_asts']:
-                root = buid_tree(new_ast)
-                new_asts.append(root)
-            
-            data[id]['commits'][commit_sha]['new_asts'] = new_asts
 
-    return data
         
-
-
-
-
 '''
 data = load_data('sample_dataset_proc.json')
 
