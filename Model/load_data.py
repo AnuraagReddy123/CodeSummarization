@@ -1,7 +1,7 @@
 from os import path
 import json
 from Utils.Structures import Node 
-
+import numpy as np
 
 def _build_tree(node, adj):
 
@@ -31,7 +31,15 @@ def load_data(file_path):
         dataset = json.load(f)
     
     for key in dataset:
-        for commit_sha in dataset[key]['commits']:
+        dataset[key]['body'] = np.array(dataset[key]['body'])
+        dataset[key]['issue_title'] = np.array(dataset[key]['issue_title'])
+
+        commits = dataset[key]['commits']
+
+        for commit_sha in commits:
+
+            commits[commit_sha]['cm'] = np.array(commits[commit_sha]['cm'])
+            commits[commit_sha]['comments'] = np.array(commits[commit_sha]['comments'])
 
             old_asts = dataset[key]['commits'][commit_sha]['old_asts']
             dataset[key]['commits'][commit_sha]['old_asts'] = [buid_tree(old_ast) for old_ast in old_asts]
