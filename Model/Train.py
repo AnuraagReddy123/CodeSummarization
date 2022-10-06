@@ -53,6 +53,7 @@ def generate_batch(dataset):
             del dataset[key]['body']
 
             batch_pr.append(dataset[key])
+            # append start in the beginning
             batch_prdesc_shift.append([0] + pr_desc)
             batch_prdesc.append(pr_desc)
 
