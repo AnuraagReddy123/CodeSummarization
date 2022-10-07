@@ -31,21 +31,27 @@ def load_data(file_path):
         dataset = json.load(f)
     
     for key in dataset:
-        dataset[key]['body'] = np.array(dataset[key]['body'])
-        dataset[key]['issue_title'] = np.array(dataset[key]['issue_title'])
+        dataset[key]['body'] = np.array(dataset[key]['body'] if len(dataset[key]['body']) > 0 else [1])
+        dataset[key]['issue_title'] = np.array(dataset[key]['issue_title'] if len(dataset[key]['issue_title']) > 0 else [1])
 
         commits = dataset[key]['commits']
 
         for commit_sha in commits:
 
-            commits[commit_sha]['cm'] = np.array(commits[commit_sha]['cm'])
-            commits[commit_sha]['comments'] = np.array(commits[commit_sha]['comments'])
+            commits[commit_sha]['cm'] = np.array(commits[commit_sha]['cm'] if len(commits[commit_sha]['cm']) > 0 else [1])
+            commits[commit_sha]['comments'] = np.array(commits[commit_sha]['comments'] if len(commits[commit_sha]['comments']) > 0 else [1])
 
             old_asts = dataset[key]['commits'][commit_sha]['old_asts']
-            dataset[key]['commits'][commit_sha]['old_asts'] = [buid_tree(old_ast) for old_ast in old_asts]
+            if len(old_asts) > 0:
+                dataset[key]['commits'][commit_sha]['old_asts'] = [buid_tree(old_ast) for old_ast in old_asts]
+            else:
+                dataset[key]['commits'][commit_sha]['old_asts'] = [buid_tree({})]
 
             new_asts = dataset[key]['commits'][commit_sha]['new_asts']
-            dataset[key]['commits'][commit_sha]['new_asts'] = [buid_tree(new_ast) for new_ast in new_asts]
+            if len(new_asts) > 0:
+                dataset[key]['commits'][commit_sha]['new_asts'] = [buid_tree(new_ast) for new_ast in new_asts]
+            else:
+                dataset[key]['commits'][commit_sha]['new_asts'] = [buid_tree({})]
 
     return dataset
 
