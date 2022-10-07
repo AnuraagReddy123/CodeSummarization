@@ -39,26 +39,23 @@ def generate_batch(dataset):
     keys = list(dataset.keys())
     N = len(keys)
 
-    while True:
-        for i in range(0, N, batch_size):
+    for i in range(0, N, batch_size):
 
-            batch_pr = []
-            batch_prdesc_shift = []
-            batch_prdesc = []
+        batch_pr = []
+        batch_prdesc_shift = []
+        batch_prdesc = []
 
-            for j in range(min(batch_size, N-i)):
+        for j in range(min(batch_size, N-i)):
 
-                key = keys[i+j]
+            key = keys[i+j]
+            pr_desc: list = dataset[key]['body']
 
-                pr_desc: list = dataset[key]['body']
-                del dataset[key]['body']
+            batch_pr.append(dataset[key])
+            # append start in the beginning
+            batch_prdesc_shift.append([0] + pr_desc)
+            batch_prdesc.append(pr_desc)
 
-                batch_pr.append(dataset[key])
-                # append start in the beginning
-                batch_prdesc_shift.append([0] + pr_desc)
-                batch_prdesc.append(pr_desc)
-
-            yield (batch_pr, np.array(batch_prdesc_shift), np.array(batch_prdesc))
+        yield (batch_pr, np.array(batch_prdesc_shift), np.array(batch_prdesc))
 
 
 
