@@ -8,6 +8,7 @@ import copy
 # max number of ASTs and Commits 
 N_ASTS = 10
 N_COMMITS = 10
+N_PRDESC = 20
 
 Empty_commit =  {
     'cm': [1],
@@ -42,7 +43,17 @@ def adjust_commits(commits: dict):
             del commits[k]
 
     return commits
+
+def adjust_body(body: list):
     
+    if len(body) >= N_PRDESC:
+        body = body[:N_PRDESC-1] + [2]
+    elif len(body) < N_PRDESC:
+        body.append(2)
+        body.extend([1]*(N_PRDESC - len(body)))
+
+    return body
+
 
 def _build_tree(node, adj):
 
@@ -79,7 +90,7 @@ def load_data(file_path):
         dataset = json.load(f)
     
     for key in dataset:
-        dataset[key]['body'] = np.array(dataset[key]['body'] if len(dataset[key]['body']) > 0 else [1])
+        dataset[key]['body'] = np.array(adjust_body(dataset[key]['body']))
         dataset[key]['issue_title'] = np.array(dataset[key]['issue_title'] if len(dataset[key]['issue_title']) > 0 else [1])
 
         commits = dataset[key]['commits']
@@ -91,16 +102,14 @@ def load_data(file_path):
             commits[commit_sha]['comments'] = np.array(commits[commit_sha]['comments'] if len(commits[commit_sha]['comments']) > 0 else [1])
 
             old_asts = dataset[key]['commits'][commit_sha]['old_asts']
-            if len(old_asts) > 0:
-                dataset[key]['commits'][commit_sha]['old_asts'] = [buid_tree(old_ast) for old_ast in old_asts]
-            else:
-                dataset[key]['commits'][commit_sha]['old_asts'] = [buid_tree({})]
+            old_asts = adjust_asts(old_asts)
+            dataset[key]['commits'][commit_sha]['old_asts'] = [build_tree(x) for x in old_asts]
 
             new_asts = dataset[key]['commits'][commit_sha]['new_asts']
-            if len(new_asts) > 0:
-                dataset[key]['commits'][commit_sha]['new_asts'] = [buid_tree(new_ast) for new_ast in new_asts]
-            else:
-                dataset[key]['commits'][commit_sha]['new_asts'] = [buid_tree({})]
+            new_asts = adjust_asts(new_asts)
+            dataset[key]['commits'][commit_sha]['new_asts'] = [build_tree(x) for x in new_asts]
+        
+        dataset[key]['commits'] = commits
 
     return dataset
         
