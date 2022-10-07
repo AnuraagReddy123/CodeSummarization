@@ -57,7 +57,7 @@ def generate_batch(dataset):
             batch_prdesc_shift.append([0] + pr_desc)
             batch_prdesc.append(pr_desc)
 
-        yield (batch_pr, batch_prdesc_shift, batch_prdesc)
+        yield (batch_pr, np.array(batch_prdesc_shift), np.array(batch_prdesc))
 
 
 
@@ -123,7 +123,7 @@ def main_train(encoder:Encoder, decoder:Decoder, dataset, optimizer, epochs, che
         for batch, (batch_pr, batch_prdesc_shift, batch_prdesc) in enumerate(generate_batch(dataset)):
             # Train the batch
             loss, accuracy = train_step(batch_pr, batch_prdesc_shift, batch_prdesc, encoder, decoder, optimizer)
-            if batch % 100 == 0:
+            if batch % 1 == 0:
                 losses.append(loss)
                 accuracies.append(accuracy)
                 print('Epoch {} Batch {} Loss {:.4f} Accuracy {:.4f}'.format(epoch + 1, batch, loss.numpy(), accuracy.numpy()))
@@ -155,7 +155,7 @@ if __name__ == '__main__':
     checkpoint = tf.train.Checkpoint(optimizer=optimizer, encoder=encoder, decoder=decoder)
 
     # Train
-    losses, accuracies = main_train(encoder, decoder, dataset, optimizer, 10, checkpoint, checkpoint_prefix)
+    losses, accuracies = main_train(encoder, decoder, dataset, optimizer, 1, checkpoint, checkpoint_prefix)
 
     # Save losses and accuracies
     np.save('losses.npy', losses)
