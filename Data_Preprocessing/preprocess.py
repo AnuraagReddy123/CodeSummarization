@@ -24,7 +24,7 @@ MAX_VOCAB = 5000
 def _preprocess_text(text: str):
 
     text = text.lower()
-    text_p = "".join([char for char in text if char not in string.punctuation])
+    text_p = "".join([char if char not in string.punctuation else " " for char in text])
     
     words = word_tokenize(text_p)
     
@@ -162,7 +162,7 @@ def encode_word_to_index(dataset: dict, vocab: list):
 
 
 
-def main():
+if __name__=='__main__':
 
     with open('sample_dataset_aug.json') as f:
         dataset: dict = json.load(f)
@@ -179,9 +179,6 @@ def main():
 
     dataset = encode_word_to_index(dataset, vocab)
 
-    with open('sample_dataset_proc.json', 'w+') as f:
+    with open('sample_dataset_pre.json', 'w+') as f:
         f.write(json.dumps(dataset))
 
-
-
-main()
