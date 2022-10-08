@@ -153,8 +153,12 @@ if __name__ == '__main__':
     checkpoint = tf.train.Checkpoint(optimizer=optimizer, encoder=encoder, decoder=decoder)
 
     # Train
-    losses, accuracies = main_train(encoder, decoder, dataset, optimizer, 1, checkpoint, checkpoint_prefix)
+    losses, accuracies = main_train(encoder, decoder, dataset, optimizer, 3, checkpoint, checkpoint_prefix)
 
     # Save losses and accuracies
     np.save('losses.npy', losses)
     np.save('accuracies.npy', accuracies)
+
+    # Save encoder and decoder
+    encoder.save_weights('encoder.h5')
+    decoder.save_weights('decoder.h5')
