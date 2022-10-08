@@ -6,7 +6,7 @@ const fs = require("fs")
 const path = require("path")
 const dotparser = require('dotparser');
 
-const dataset = require("./sample_dataset.json")
+const dataset = require("../Data/dataset.json")
 
 require('dotenv').config()
 
@@ -54,6 +54,8 @@ async function get_data(){
       dataset[x]["issue_title"] = ""
     }
 
+    console.log("issue title check.");
+
     // ---------------- ASTs ---------------------------------------
     // --------- Clone the repo if it doesn't exist ----------------
 
@@ -66,186 +68,119 @@ async function get_data(){
       execSync(`cd ${owner_path} && git clone https://github.com/${owner}/${repo}.git`)
     }
 
+    console.log("repos check.");
+
     // -----------------------------------------------------------
 
     let old_hashs = {}
 
     const diff_res = await axios.get(diff_url)
     const diff_output = diff_res.data
-    //console.log(diff_output);
-
-
     const files = diffParser.parse(diff_output)
 
     for(let file of files){
       if(file.newPath.slice(-5) === ".java" && file.oldPath.slice(-5) === ".java"){
-        //console.log("Found a JAVA file");
-        //console.log(file);
 
         const old_hash = file.oldRevision
         const new_hash = file.newRevision
-
         old_hashs[`${new_hash}`] = `${old_hash}`
+      }
+    }
 
-        //console.log(old_hash, new_hash);
-        //console.log(diff_output);
+    console.log("old and new hashes check.");
 
-        continue
+    let com_i = 0
+    for(let commit_sha of Object.keys(dataset[x]["commits"])){
+
+      console.log("commit : " + com_i);
+      com_i++;
+      
+      const commit_res = await octokit.request('GET /repos/{owner}/{repo}/commits/{ref}', {
+        owner: owner,
+        repo: repo,
+        ref: commit_sha.slice(1, -1)
+      })
+
+      const new_file_shas = commit_res.data["files"].filter(file => (file.filename.slice(-5) === ".java")).map(file => file.sha)
+      const patches = commit_res.data["files"].filter(file => (file.filename.slice(-5) === ".java")).map(file => file.patch)
+
+      if(dataset[x]["commits"][commit_sha]["old_asts"] === undefined){
+        dataset[x]["commits"][commit_sha]["old_asts"] = []
+      }
+      if(dataset[x]["commits"][commit_sha]["new_asts"] === undefined){
+        dataset[x]["commits"][commit_sha]["new_asts"] = []
+      }
+
+      console.log("files changed " + new_file_shas.length);
+
+      for(let i=0; i<new_file_shas.length; i++){
+
+        const new_file_sha = new_file_shas[i]
+        const old_file_sha = old_hashs[new_file_sha.slice(0, 13)]
+        const patch = patches[i]
+
+        // new_file_sha & old_file_sha are available
 
         // Get the files
         const repo_path = path.join(__dirname, 'repos', owner, repo).replace(/\ /g, "\\ ")
-        execSync(`cd ${repo_path} && git show ${old_hash} > ../../../temp/old.java && git show ${new_hash} > ../../../temp/new.java`)
 
-        // TODO: might have to delete the dir if exists
-        execSync(`cd temp && joern-parse old.java && joern-export --repr ast --out old_ast`)
-        execSync(`cd temp && joern-parse new.java && joern-export --repr ast --out new_ast`)
-
-        if(dataset[x]["old_asts"] === undefined){
-          dataset[x]["old_asts"] = []
-        }
-        if(dataset[x]["new_asts"] === undefined){
-          dataset[x]["new_asts"] = []
+        if(old_file_sha !== undefined){
+          execSync(`cd ${repo_path} && git show ${old_file_sha} > ../../../temp/old.java`)
+          execSync(`cd temp && joern-parse old.java && joern-export --repr ast --out old_ast`)
         }
 
-        for(let hunk of file.hunks){
-          const hunk_header = hunk.content
+        if(new_file_sha !== undefined){
+          execSync(`cd ${repo_path} && git show ${new_file_sha} > ../../../temp/new.java`)
+          execSync(`cd temp && joern-parse new.java && joern-export --repr ast --out new_ast`)
+        }
+
+        console.log("retrieved java file " + i);
+
+        // patch contails all the chunks where the changes happened in a file.
+        const hunk_headers = patch.split('\n').filter(line => line.startsWith("@@"))
+
+        console.log("changes in file " + i + " : " + hunk_headers.length);
+
+        let j = 0;
+        for(let hunk_header of hunk_headers){
+
           const function_name = hunk_header.split("@").slice(-1)[0].split("(")[0].split(" ").slice(-1)[0]
 
-          for(let dotfile of fs.readdirSync(path.join('temp', 'old_ast'))){
-            const dotfile_contents = fs.readFileSync(path.join('temp', 'old_ast', dotfile))
-            const ast = dotparser(dotfile_contents.toString())
-            if(ast[0].id === function_name){
-              const custom_ast = get_custom_ast(ast[0])
-              console.log("OLD AST");
-              console.log(custom_ast);
-              dataset[x]["old_asts"].push(custom_ast)
-              break
+          if(old_file_sha === undefined)
+            dataset[x]["commits"][commit_sha]["old_asts"].push({})
+          else{
+            for(let dotfile of fs.readdirSync(path.join('temp', 'old_ast'))){
+              const dotfile_contents = fs.readFileSync(path.join('temp', 'old_ast', dotfile))
+              const ast = dotparser(dotfile_contents.toString())
+              if(ast[0].id === function_name){
+                const custom_ast = get_custom_ast(ast[0])
+                dataset[x]["commits"][commit_sha]["old_asts"].push(custom_ast)
+                break
+              }
             }
           }
 
-          for(let dotfile of fs.readdirSync(path.join('temp', 'new_ast'))){
-            const dotfile_contents = fs.readFileSync(path.join('temp', 'new_ast', dotfile))
-            const ast = dotparser(dotfile_contents.toString())
-            if(ast[0].id === function_name){
-              const custom_ast = get_custom_ast(ast[0])
-              console.log("NEW AST");
-              console.log(custom_ast);
-              dataset[x]["new_asts"].push(custom_ast)
-              break
+          if(new_file_sha === undefined)
+            dataset[x]["commits"][commit_sha]["new_asts"].push({})
+          else{
+            for(let dotfile of fs.readdirSync(path.join('temp', 'new_ast'))){
+              const dotfile_contents = fs.readFileSync(path.join('temp', 'new_ast', dotfile))
+              const ast = dotparser(dotfile_contents.toString())
+              if(ast[0].id === function_name){
+                const custom_ast = get_custom_ast(ast[0])
+                dataset[x]["commits"][commit_sha]["new_asts"].push(custom_ast)
+                break
+              }
             }
           }
+          console.log("change " + j + " done.");
+          j++;
         }
-
         execSync(`cd temp && rm -r *`)
-
-
-        fs.writeFileSync('sample_dataset_aug.json', JSON.stringify(dataset))
       }
     }
-
-    //if(Object.keys(old_hashs).length > 0){
-      //console.log(old_hashs);
-      //return
-    //}
-
-
-    for(let commit_sha of Object.keys(dataset[x]["commits"])){
-
-
-        const commit_res = await octokit.request('GET /repos/{owner}/{repo}/commits/{ref}', {
-          owner: owner,
-          repo: repo,
-          ref: commit_sha.slice(1, -1)
-        })
-
-        //console.log(commit_res);
-        const new_file_shas = commit_res.data["files"].filter(file => (file.filename.slice(-5) === ".java")).map(file => file.sha)
-        const patches = commit_res.data["files"].filter(file => (file.filename.slice(-5) === ".java")).map(file => file.patch)
-
-        if(dataset[x]["commits"][commit_sha]["old_asts"] === undefined){
-          dataset[x]["commits"][commit_sha]["old_asts"] = []
-        }
-        if(dataset[x]["commits"][commit_sha]["new_asts"] === undefined){
-          dataset[x]["commits"][commit_sha]["new_asts"] = []
-        }
-
-        for(let i=0; i<new_file_shas.length; i++){
-
-          const new_file_sha = new_file_shas[i]
-          const old_file_sha = old_hashs[new_file_sha.slice(0, 13)]
-          const patch = patches[i]
-
-          // new_file_sha & old_file_sha are available
-
-          //console.log("------PATCH--------------");
-          //console.log(patch);
-
-          // Get the files
-          const repo_path = path.join(__dirname, 'repos', owner, repo).replace(/\ /g, "\\ ")
-
-          if(old_file_sha !== undefined){
-            execSync(`cd ${repo_path} && git show ${old_file_sha} > ../../../temp/old.java`)
-            execSync(`cd temp && joern-parse old.java && joern-export --repr ast --out old_ast`)
-          }
-
-          if(new_file_sha !== undefined){
-            execSync(`cd ${repo_path} && git show ${new_file_sha} > ../../../temp/new.java`)
-            execSync(`cd temp && joern-parse new.java && joern-export --repr ast --out new_ast`)
-          }
-
-
-          // execSync(`cd ${repo_path} && git show ${old_file_sha} > ../../../temp/old.java && git show ${new_file_sha} > ../../../temp/new.java`)
-
-          // execSync(`cd temp && joern-parse old.java && joern-export --repr ast --out old_ast`)
-          // execSync(`cd temp && joern-parse new.java && joern-export --repr ast --out new_ast`)
-
-
-          // patch contails all the chunks where the changes happened in a file.
-          const hunk_headers = patch.split('\n').filter(line => line.startsWith("@@"))
-
-          for(let hunk_header of hunk_headers){
-
-            const function_name = hunk_header.split("@").slice(-1)[0].split("(")[0].split(" ").slice(-1)[0]
-
-            if(old_file_sha === undefined)
-              dataset[x]["commits"][commit_sha]["old_asts"].push({})
-            else{
-              for(let dotfile of fs.readdirSync(path.join('temp', 'old_ast'))){
-                const dotfile_contents = fs.readFileSync(path.join('temp', 'old_ast', dotfile))
-                const ast = dotparser(dotfile_contents.toString())
-                if(ast[0].id === function_name){
-                  const custom_ast = get_custom_ast(ast[0])
-                  dataset[x]["commits"][commit_sha]["old_asts"].push(custom_ast)
-                  break
-                }
-              }
-            }
-
-            if(new_file_sha === undefined)
-              dataset[x]["commits"][commit_sha]["new_asts"].push({})
-            else{
-              for(let dotfile of fs.readdirSync(path.join('temp', 'new_ast'))){
-                const dotfile_contents = fs.readFileSync(path.join('temp', 'new_ast', dotfile))
-                const ast = dotparser(dotfile_contents.toString())
-                if(ast[0].id === function_name){
-                  const custom_ast = get_custom_ast(ast[0])
-                  dataset[x]["commits"][commit_sha]["new_asts"].push(custom_ast)
-                  break
-                }
-              }
-            }
-          }
-
-          execSync(`cd temp && rm -r *`)
-
-          // need to be put at the end of the main loop
-          // return
-        }
-      }
-      
-    }
-    fs.writeFileSync('sample_dataset_aug.json', JSON.stringify(dataset))
-
+  }
+  fs.writeFileSync('../Data/dataset_aug.json', JSON.stringify(dataset))
 }
 
 get_data()
@@ -257,6 +192,7 @@ function get_custom_ast(ast){
   custom_ast = {}
 
   /**
+   * Structure of the AST in JSON format:
    * custom_ast = {id: {label: "sdbv", children: [id1, id2....]}}
    */
 
@@ -281,84 +217,3 @@ function get_custom_ast(ast){
   return custom_ast
 
 }
-
-
-
-
-
-  // -----------------------------------------------------------
-
-
-    //for(let ref of Object.keys(ds[x]["commits"])){
-      ////console.log(ref.slice(1,-1));
-
-      //const commit = await octokit.request("GET /repos/{owner}/{repo}/commits/{ref}", {
-        //owner,
-        //repo,
-        //ref: ref.slice(1, -1)
-      //})
-
-
-
-      //for(let file of commit.data.files){
-        //if(file.filename.slice(-5) === ".java"){
-
-          //const current_file_url = file.raw_url
-          //const file_res = await axios.get(current_file_url)
-          //const file_content = file_res.data
-
-          //const function_name = file.patch.split("\n")[0].split("@").slice(-1)[0].split("(")[0].split(" ").slice(-1)[0]
-
-
-          //const ast = parse(file_content)
-
-          //createVisitor({
-            //visitMethodDeclaration: (m) => {
-              //// store the method AST 
-              //if(m.IDENTIFIER()._symbol.text === function_name){
-                //handle_ast(m)
-              //}
-            //},
-            //defaultResult: () => 0
-          //}).visit(ast)
-          
-
-          ////ds[pull]["commits"][ref]
-
-          //return
-        //}
-      //}
-    //}
-
-
-
-
-
-
-//get_issue_titles()
-//.then(() => {
-  //console.log(ds[Object.keys(ds)[0]]);
-  //console.log(ds[Object.keys(ds)[1]]);
-//})
-
-//octokit.request('GET /repos/{owner}/{repo}/contents/{file_path}?ref={ref}', {
-  //owner: "elastic",
-  //repo: "elasticsearch",
-  //file_path: "x-pack/plugin/core/src/main/java/org/elasticsearch/xpack/core/ml/MlMetaIndex.java",
-  //ref: "b1ec651500e0f9b16772babf3dac8e1c48281335"
-//}).then(res => {
-  //console.log(res.data);
-//})
-
-//octokit.request('GET /repos/{owner}/{repo}/git/blobs/{file_sha}', {
-  //owner: "elastic",
-  //repo: "elasticsearch",
-  //file_sha: '9014c415f16bb'
-//}).then(res => {
-  //console.log(res.data);
-//})
-
-//const diff_op = "diff --git a/SwapNumbers.java b/SwapNumbers.java index ce3e6aa..812e307 100644 --- a/SwapNumbers.java  +++ b/SwapNumbers.java @@ -20,5 +20,6 @@ public class SwapNumbers {  System.out.println(\"--After swap--\"); System.out.println(\"First number = \" + first);  System.out.println(\"Second number = \" + second);  +        System.out.println(\"Hello\"); }} \ No newline at end of file"
-
-//const files = diffParser.parse(diff_op)
-//console.log(files);
