@@ -19,6 +19,8 @@ from nltk import pos_tag
 
 import json
 
+MAX_VOCAB = 5000
+
 def _preprocess_text(text: str):
 
     text = text.lower()
@@ -67,60 +69,94 @@ def preprocess_text(dataset: dict):
 
 def compute_vocab(dataset: dict):
 
-    vocab_set = set()
+    vocab_dict = {}
+
+    def _add(word):
+        if word in vocab_dict:
+            vocab_dict[word] += 1
+        else:
+            vocab_dict[word] = 1
 
     for key in dataset:
 
-        vocab_set = vocab_set.union(dataset[key]['body'].split())
-        vocab_set = vocab_set.union(dataset[key]['issue_title'].split())
+        for x in dataset[key]['body'].split():
+            _add(x)
+        for x in dataset[key]['issue_title'].split():
+            _add(x)
+
+        # vocab_set = vocab_set.union(dataset[key]['body'].split())
+        # vocab_set = vocab_set.union(dataset[key]['issue_title'].split())
 
         for commit_sha in dataset[key]['commits']:
-            vocab_set = vocab_set.union(dataset[key]['commits'][commit_sha]['cm'].split())
-            vocab_set = vocab_set.union(dataset[key]['commits'][commit_sha]['comments'].split())
+            # vocab_set = vocab_set.union(dataset[key]['commits'][commit_sha]['cm'].split())
+            # vocab_set = vocab_set.union(dataset[key]['commits'][commit_sha]['comments'].split())
+
+            for x in dataset[key]['commits'][commit_sha]['cm'].split():
+                _add(x)
+            for x in dataset[key]['commits'][commit_sha]['comments'].split():
+                _add(x)
 
             old_asts = dataset[key]['commits'][commit_sha]['old_asts']
             new_asts = dataset[key]['commits'][commit_sha]['new_asts']
 
             for old_ast in old_asts:
                 for node_id in old_ast:
-                    vocab_set.add(old_ast[node_id]['label'])
+                    _add(old_ast[node_id]['label'])
+                    # vocab_set.add(old_ast[node_id]['label'])
 
             for new_ast in new_asts:
                 for node_id in new_ast:
-                    vocab_set.add(new_ast[node_id]['label'])
+                    _add(new_ast[node_id]['label'])
+                    # vocab_set.add(new_ast[node_id]['label'])
 
-    # _START -> 0
-    # _BLANK -> 1
+    # <START> -> 0
+    # <BLANK> -> 1
+    # <END> -> 2
+    # <UNK> -> 3
     
-    vocab = ['_START', '_BLANK'] + list(vocab_set)
+    vocab_count = list(vocab_dict.items())
+    vocab_count.sort(key=lambda k: k[1], reverse=True)
+    if len(vocab_count) > MAX_VOCAB-4:
+        vocab_count = vocab_count[:MAX_VOCAB-4]
+
+    vocab = [x[0] for x in vocab_count]
+
+    vocab = ['<START>', '<BLANK>', '<END>', '<UNK>'] + vocab
+
     return vocab
 
 
 
 def encode_word_to_index(dataset: dict, vocab: list):
 
+    def _index(word):
+        if word in vocab:
+            return vocab.index(word)
+        else:
+            return 3
+
     for key in dataset:
 
-        dataset[key]['body'] = [vocab.index(x) for x in dataset[key]['body'].split()]
-        dataset[key]['issue_title'] = [vocab.index(x) for x in dataset[key]['issue_title'].split()]
+        dataset[key]['body'] = [_index(x) for x in dataset[key]['body'].split()]
+        dataset[key]['issue_title'] = [_index(x) for x in dataset[key]['issue_title'].split()]
 
         for commit_sha in dataset[key]['commits']:
             cm = dataset[key]['commits'][commit_sha]['cm']
-            dataset[key]['commits'][commit_sha]['cm'] = [vocab.index(x) for x in cm.split()]
+            dataset[key]['commits'][commit_sha]['cm'] = [_index(x) for x in cm.split()]
 
             comments = dataset[key]['commits'][commit_sha]['comments']
-            dataset[key]['commits'][commit_sha]['comments'] = [vocab.index(x) for x in comments.split()]
+            dataset[key]['commits'][commit_sha]['comments'] = [_index(x) for x in comments.split()]
 
             old_asts = dataset[key]['commits'][commit_sha]['old_asts']
             new_asts = dataset[key]['commits'][commit_sha]['new_asts']
 
             for old_ast in old_asts:
                 for node_id in old_ast:
-                    old_ast[node_id]['label'] = vocab.index(old_ast[node_id]['label'])
+                    old_ast[node_id]['label'] = _index(old_ast[node_id]['label'])
 
             for new_ast in new_asts:
                 for node_id in new_ast:
-                    new_ast[node_id]['label'] = vocab.index(new_ast[node_id]['label'])
+                    new_ast[node_id]['label'] = _index(new_ast[node_id]['label'])
 
     return dataset
 

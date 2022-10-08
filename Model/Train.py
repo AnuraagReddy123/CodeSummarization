@@ -158,3 +158,7 @@ if __name__ == '__main__':
     # Save losses and accuracies
     np.save('losses.npy', losses)
     np.save('accuracies.npy', accuracies)
+
+    # Save encoder and decoder
+    encoder.save_weights('encoder.h5')
+    decoder.save_weights('decoder.h5')
