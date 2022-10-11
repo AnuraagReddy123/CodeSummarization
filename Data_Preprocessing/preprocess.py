@@ -97,17 +97,17 @@ def compute_vocab(dataset: dict):
                 _add(x)
 
             old_asts = dataset[key]['commits'][commit_sha]['old_asts']
-            new_asts = dataset[key]['commits'][commit_sha]['new_asts']
+            cur_asts = dataset[key]['commits'][commit_sha]['cur_asts']
 
             for old_ast in old_asts:
                 for node_id in old_ast:
                     _add(old_ast[node_id]['label'])
                     # vocab_set.add(old_ast[node_id]['label'])
 
-            for new_ast in new_asts:
-                for node_id in new_ast:
-                    _add(new_ast[node_id]['label'])
-                    # vocab_set.add(new_ast[node_id]['label'])
+            for cur_ast in cur_asts:
+                for node_id in cur_ast:
+                    _add(cur_ast[node_id]['label'])
+                    # vocab_set.add(cur_ast[node_id]['label'])
 
     # <START> -> 0
     # <BLANK> -> 1
@@ -148,15 +148,15 @@ def encode_word_to_index(dataset: dict, vocab: list):
             dataset[key]['commits'][commit_sha]['comments'] = [_index(x) for x in comments.split()]
 
             old_asts = dataset[key]['commits'][commit_sha]['old_asts']
-            new_asts = dataset[key]['commits'][commit_sha]['new_asts']
+            cur_asts = dataset[key]['commits'][commit_sha]['cur_asts']
 
             for old_ast in old_asts:
                 for node_id in old_ast:
                     old_ast[node_id]['label'] = _index(old_ast[node_id]['label'])
 
-            for new_ast in new_asts:
-                for node_id in new_ast:
-                    new_ast[node_id]['label'] = _index(new_ast[node_id]['label'])
+            for cur_ast in cur_asts:
+                for node_id in cur_ast:
+                    cur_ast[node_id]['label'] = _index(cur_ast[node_id]['label'])
 
     return dataset
 

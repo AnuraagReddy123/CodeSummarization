@@ -5,8 +5,9 @@ const {execSync} = require("child_process")
 const fs = require("fs")
 const path = require("path")
 const dotparser = require('dotparser');
+const readline = require('readline');
 
-const dataset = require("../Data/dataset.json")
+// const dataset = require("../Data/dataset.json")
 
 require('dotenv').config()
 
@@ -15,7 +16,7 @@ const octokit = new Octokit({
 });
 
 
-async function get_data(){
+async function main(){
 
   if(!fs.existsSync(path.join(__dirname, 'repos'))){
     fs.mkdirSync(path.join(__dirname, 'repos'))
@@ -27,7 +28,20 @@ async function get_data(){
 
   let i = 0;
 
-  for(let x of Object.keys(dataset)){
+  const rl = readline.createInterface({
+    input: fs.createReadStream('../Data/dataset.json'),
+    crlfDelay: Infinity,
+  });
+    
+  fs.appendFileSync('../Data/dataset_aug.json', '{\n')
+
+  rl.on('line', async (line) => {
+    
+    let datapoint = JSON.parse(line)
+    let x = datapoint["id"]
+
+    // await new Promise((res) => rl.once('close', res));
+    // for(let x of Object.keys(dataset)){
 
     console.log(i);
     i++;
@@ -47,11 +61,11 @@ async function get_data(){
     
     try{
       const issue_res = await axios.get(issue_url)
-      dataset[x]["issue_title"] = issue_res.data.title
+      datapoint["issue_title"] = issue_res.data.title
     }catch(e){
       console.log(e);
       console.log("No issue associated");
-      dataset[x]["issue_title"] = ""
+      datapoint["issue_title"] = ""
     }
 
     console.log("issue title check.");
@@ -90,7 +104,7 @@ async function get_data(){
     console.log("old and new hashes check.");
 
     let com_i = 0
-    for(let commit_sha of Object.keys(dataset[x]["commits"])){
+    for(let commit_sha of Object.keys(datapoint["commits"])){
 
       console.log("commit : " + com_i);
       com_i++;
@@ -104,11 +118,11 @@ async function get_data(){
       const new_file_shas = commit_res.data["files"].filter(file => (file.filename.slice(-5) === ".java")).map(file => file.sha)
       const patches = commit_res.data["files"].filter(file => (file.filename.slice(-5) === ".java")).map(file => file.patch)
 
-      if(dataset[x]["commits"][commit_sha]["old_asts"] === undefined){
-        dataset[x]["commits"][commit_sha]["old_asts"] = []
+      if(datapoint["commits"][commit_sha]["old_asts"] === undefined){
+        datapoint["commits"][commit_sha]["old_asts"] = []
       }
-      if(dataset[x]["commits"][commit_sha]["new_asts"] === undefined){
-        dataset[x]["commits"][commit_sha]["new_asts"] = []
+      if(datapoint["commits"][commit_sha]["new_asts"] === undefined){
+        datapoint["commits"][commit_sha]["new_asts"] = []
       }
 
       console.log("files changed " + new_file_shas.length);
@@ -147,28 +161,28 @@ async function get_data(){
           const function_name = hunk_header.split("@").slice(-1)[0].split("(")[0].split(" ").slice(-1)[0]
 
           if(old_file_sha === undefined)
-            dataset[x]["commits"][commit_sha]["old_asts"].push({})
+            datapoint["commits"][commit_sha]["old_asts"].push({})
           else{
             for(let dotfile of fs.readdirSync(path.join('temp', 'old_ast'))){
               const dotfile_contents = fs.readFileSync(path.join('temp', 'old_ast', dotfile))
               const ast = dotparser(dotfile_contents.toString())
               if(ast[0].id === function_name){
                 const custom_ast = get_custom_ast(ast[0])
-                dataset[x]["commits"][commit_sha]["old_asts"].push(custom_ast)
+                datapoint["commits"][commit_sha]["old_asts"].push(custom_ast)
                 break
               }
             }
           }
 
           if(new_file_sha === undefined)
-            dataset[x]["commits"][commit_sha]["new_asts"].push({})
+            datapoint["commits"][commit_sha]["new_asts"].push({})
           else{
             for(let dotfile of fs.readdirSync(path.join('temp', 'new_ast'))){
               const dotfile_contents = fs.readFileSync(path.join('temp', 'new_ast', dotfile))
               const ast = dotparser(dotfile_contents.toString())
               if(ast[0].id === function_name){
                 const custom_ast = get_custom_ast(ast[0])
-                dataset[x]["commits"][commit_sha]["new_asts"].push(custom_ast)
+                datapoint["commits"][commit_sha]["new_asts"].push(custom_ast)
                 break
               }
             }
@@ -179,11 +193,14 @@ async function get_data(){
         execSync(`cd temp && rm -r *`)
       }
     }
-  }
-  fs.writeFileSync('../Data/dataset_aug.json', JSON.stringify(dataset))
+    fs.appendFileSync('../Data/dataset_aug.json', `${datapoint['id']}: ${JSON.stringify(datapoint)},`)
+  })
+  await new Promise((res) => rl.once('close', res));
+  // fs.writeFileSync('../Data/dataset_aug.json', JSON.stringify(dataset))
+  fs.appendFileSync('../Data/dataset_aug.json', '\n}')
 }
 
-get_data()
+main()
 
 
 
