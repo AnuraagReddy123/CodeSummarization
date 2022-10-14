@@ -176,6 +176,8 @@ if __name__=='__main__':
                     print(f'Time taken for get cur ver : {ed - st}')
                     old_text = get_prev_version(cur_text, file.patch)
 
+                    print(file.patch)
+
                     entity_names = get_entity_names(file.patch)
 
                     os.makedirs('temp')
@@ -220,7 +222,10 @@ if __name__=='__main__':
                     dataset[d_key]['commits'][f"'{commit.sha}'"]['cur_asts'].extend(cur_asts_list)
                     dataset[d_key]['commits'][f"'{commit.sha}'"]['old_asts'].extend(old_asts_list)
 
+                    exit(0)
+                    
                     os.popen('rm -rf temp').close()
+
         
     
     # with open(path.join('..', 'Data', 'dataset_aug.json'), 'w+') as f:
