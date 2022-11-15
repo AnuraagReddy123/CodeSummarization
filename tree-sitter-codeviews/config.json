@@ -1,6 +1,6 @@
 {
     "src_language" : "java",
-    "file_name" : "cur.java",
+    "file_name" : "input.java",
     "combined" : true,
     "code_view" : "AST",
     "graph_format" : "json",

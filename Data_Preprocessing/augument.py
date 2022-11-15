@@ -3,7 +3,6 @@ from os import path
 import json
 import time
 from github import Github
-import pygraphviz
 import requests
 import shlex
 import subprocess
@@ -11,8 +10,13 @@ import whatthepatch
 from dotenv import load_dotenv
 
 load_dotenv()
-
 github = Github(os.environ['TOKEN'])
+
+TS_ROOT = path.join('..', 'tree-sitter-codeviews')
+INPUT_PATH = path.join(TS_ROOT, 'code_test_files', 'java', 'input.java')
+OUTPUT_PATH = path.join(TS_ROOT, 'output_json', 'AST_output.json')
+
+MAX_ASTS = 1
 
 def parse_key(d_key):
 
@@ -77,9 +81,8 @@ def get_cur_version(repo_path, file_sha):
         Retrieves the version of the file after modifcation 
         using the file sha
     '''
-    pipe = os.popen(f'cd {repo_path} && git show {file_sha}')
-    cur_text = pipe.read()
-    pipe.close()
+    proc = subprocess.run(f'git show {file_sha}', shell=True, cwd=repo_path, stdout=subprocess.PIPE, text=True)
+    cur_text = proc.stdout
 
     return cur_text
 
@@ -97,36 +100,54 @@ def get_prev_version(cur_text, file_patch):
     return old_text
 
 
-def get_custom_asts(g_asts):
+def get_custom_ast(ast):
 
     '''
-        Converts the ASTs from the graphviz representation 
-        to custom json representation.
-
         custom represenation :-
         {
             <node_id> : { "label": <label>, "children": [<child_id>, <child_id>, ...] },
         }
     '''
-    asts = []
 
-    for g in g_asts:
-        if g is None:
-            asts.append({})
-            continue
-        tree = {}
-        for node in g.nodes():
-            label = node.attr['label'].split('(')[1].split(')')[0].split(',')[0]
-            children = [int(x) for x in g.out_neighbors(node)]
-            tree[node.name] = {'label': label, 'children': children}
+    custom_ast = {}
 
-        asts.append(tree)
+    for node in ast['nodes']:
 
-    return asts
+        node_id = node['id']
+        node_type = node['node_type']
+        node_label = node['label']
+
+        custom_ast[node_id] = {'label': f'{node_type}_{node_label}', 'children': []}
+
+    for edge in ast['links']:
+
+        custom_ast[edge['source']]['children'].append(edge['target'])
+
+    return custom_ast
+    
+
+def get_ast(text):
+
+    with open(INPUT_PATH, 'w+') as f:
+        f.write(text)
+
+    st = time.time()
+    subprocess.run('python main.py', shell=True, cwd=TS_ROOT, stdout=subprocess.PIPE)
+    ed = time.time()
+    print(f'Time taken by tree sitter: {ed - st}')
+
+    with open(OUTPUT_PATH, 'r') as f:
+        ast = json.load(f)
+
+    ast = get_custom_ast(ast)
+
+    return ast
 
 
 
 if __name__=='__main__':
+
+    st_g = time.time()
 
     if not path.isdir('repos'):
         os.makedirs('repos')
@@ -136,15 +157,16 @@ if __name__=='__main__':
     
     user, repo = [None]*2
 
+    i = 1
+
     for d_key in dataset:
+
+        print(f'\n--- datapoint {i} -------------------\n')
+        i += 1
 
         username, repo_name, pull_number = parse_key(d_key)
 
-        st = time.time()
         user, repo, pull_req = get_obj(username, repo_name, pull_number, user, repo)
-        ed = time.time()
-        # TIME
-        print(f'Time taken for get obj using github api: {ed - st}')
 
         try:
             issue_res = requests.get(pull_req.issue_url)
@@ -160,75 +182,39 @@ if __name__=='__main__':
         clone_repo(username, repo_name)
         repo_path = path.join('repos', username, repo_name)
 
+        # print(f'Commits: {len(pull_req.get_commits())}')
+
         for commit in pull_req.get_commits():
 
             dataset[d_key]['commits'][f"'{commit.sha}'"]['cur_asts'] = []
             dataset[d_key]['commits'][f"'{commit.sha}'"]['old_asts'] = []
 
+            print(f'Files: {len(commit.files)}')
+
             for file in commit.files:
+
+                if len(dataset[d_key]['commits'][f"'{commit.sha}'"]['cur_asts']) >= MAX_ASTS:
+                    break
+
                 # Considering only the changes in JAVA files.
-                if file.filename.endswith('.java'):
+                if not file.filename.endswith('.java'):
+                    continue
 
-                    st = time.time()
-                    cur_text = get_cur_version(repo_path, file.sha)
-                    ed = time.time()
-                    # TIME
-                    print(f'Time taken for get cur ver : {ed - st}')
-                    old_text = get_prev_version(cur_text, file.patch)
+                cur_text = get_cur_version(repo_path, file.sha)
+                old_text = get_prev_version(cur_text, file.patch)
 
-                    print(file.patch)
+                cur_ast = get_ast(cur_text)
+                old_ast = get_ast(old_text)
 
-                    entity_names = get_entity_names(file.patch)
-
-                    os.makedirs('temp')
-
-                    with open('./temp/cur.java', 'w+') as f:
-                        f.write(cur_text)
-                    with open('./temp/old.java', 'w+') as f:
-                        f.write(old_text)
-                    
-                    
-                    st = time.time()
-                    os.popen(f'cd temp && joern-parse cur.java && joern-export --repr ast --out cur_ast').close()
-                    os.popen(f'cd temp && joern-parse old.java && joern-export --repr ast --out old_ast').close()
-                    ed = time.time()
-                    # TIME
-                    print(f'Time taken for Joern parsing : {ed - st}')
-
-                    cur_asts_dict = {}
-                    for filename in os.listdir(path.join('temp', 'cur_ast')):
-                        g = pygraphviz.AGraph()
-                        g.read(path.join('temp', 'cur_ast', filename))
-                        cur_asts_dict[g.name] = g
-
-                    old_asts_dict = {}
-                    for filename in os.listdir(path.join('temp', 'old_ast')):
-                        g = pygraphviz.AGraph()
-                        g.read(path.join('temp', 'old_ast', filename))
-                        old_asts_dict[g.name] = g
-                        
-                    g_names = sorted(set(old_asts_dict.keys()).union(set(cur_asts_dict.keys())))
-
-                    cur_asts_list = [cur_asts_dict.get(g_name, None) for g_name in g_names if g_name in entity_names]
-                    old_asts_list = [old_asts_dict.get(g_name, None) for g_name in g_names if g_name in entity_names]
-
-                    st = time.time()
-                    cur_asts_list = get_custom_asts(cur_asts_list)
-                    old_asts_list = get_custom_asts(old_asts_list)
-                    ed = time.time()
-                    # TIME
-                    print(f'Time taken for custom ASTs building: {ed - st}')
-
-                    dataset[d_key]['commits'][f"'{commit.sha}'"]['cur_asts'].extend(cur_asts_list)
-                    dataset[d_key]['commits'][f"'{commit.sha}'"]['old_asts'].extend(old_asts_list)
-
-                    exit(0)
-                    
-                    os.popen('rm -rf temp').close()
+                dataset[d_key]['commits'][f"'{commit.sha}'"]['cur_asts'].append(cur_ast)
+                dataset[d_key]['commits'][f"'{commit.sha}'"]['old_asts'].append(old_ast)
 
         
+    with open(path.join('..', 'Data', 'dataset_aug.json'), 'w+') as f:
+        json.dump(dataset, f)
     
-    # with open(path.join('..', 'Data', 'dataset_aug.json'), 'w+') as f:
-        # json.dump(dataset, f)
+    ed_g = time.time()
+    # TIME
+    print(f'Time taken overall : {ed_g - st_g}')
             
 
