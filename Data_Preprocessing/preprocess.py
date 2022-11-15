@@ -45,15 +45,10 @@ def preprocess_text(dataset: dict):
         
         del dataset[key]['id']
         del dataset[key]['cms']
-        # cms = []
-        # for cm in dataset[key]['cms']:
-        #     cms.append(' '.join(_preprocess_text(cm)))
-        # dataset[key]['cms'] = cms
 
         i = 0
         for commit_sha in dataset[key]['commits']:
 
-            # dataset[key]['commits'][commit]['cm'] = cms[i]
             cm = dataset[key]['commits'][commit_sha]['cm']
             dataset[key]['commits'][commit_sha]['cm'] = ' '.join(_preprocess_text(cm))
             i += 1
