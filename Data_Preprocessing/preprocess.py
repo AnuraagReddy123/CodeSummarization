@@ -19,7 +19,7 @@ from nltk import pos_tag
 
 import json
 
-MAX_VOCAB = 5000
+MAX_VOCAB = 10000
 
 def _preprocess_text(text: str):
 

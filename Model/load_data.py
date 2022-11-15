@@ -59,7 +59,7 @@ def _build_tree(node, adj):
 
     for child_id in adj[str(node.id)]['children']:
         
-        child = Node(child_id, adj[child_id]['label'])
+        child = Node(child_id, adj[str(child_id)]['label'])
         node.children.append(child)
         _build_tree(child, adj)
     

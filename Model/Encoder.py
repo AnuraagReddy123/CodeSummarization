@@ -72,7 +72,7 @@ class Encoder(tf.keras.Model):
         return hlist, clist
 
     def encode(self, pr):
-        '''
+         '''
         Parameters:
             pr: Dictionary containing comments, issue titles, 
                 asts and commit messages
@@ -108,42 +108,42 @@ class Encoder(tf.keras.Model):
             h_sc = Concatenate()([h_fwd, h_bwd]) # Shape: (1, 2*hidden_dim)
             c_sc = Concatenate()([c_fwd, c_bwd]) # Shape: (1, 2*hidden_dim)
 
-            # AST Encoding
-            h_asts = []
-            c_asts = []
-            for old_ast, new_ast in inp_asts:
-                _, h_old, c_old = self.enc_ast(old_ast)
-                _, h_new, c_new = self.enc_ast(new_ast)
-                h = self.dense_mergeast_h(tf.concat([h_old, h_new], axis=1)) # Shape: (hidden_dim,)
-                c = self.dense_mergeast_c(tf.concat([c_old, c_new], axis=1)) # Shape: (hidden_dim,)
-                h_asts.append(h)
-                c_asts.append(c)
+            # # AST Encoding
+            # h_asts = []
+            # c_asts = []
+            # for old_ast, new_ast in inp_asts:
+            #     _, h_old, c_old = self.enc_ast(old_ast)
+            #     _, h_new, c_new = self.enc_ast(new_ast)
+            #     h = self.dense_mergeast_h(tf.concat([h_old, h_new], axis=1)) # Shape: (hidden_dim,)
+            #     c = self.dense_mergeast_c(tf.concat([c_old, c_new], axis=1)) # Shape: (hidden_dim,)
+            #     h_asts.append(h)
+            #     c_asts.append(c)
             
-            h_asts = tf.stack(h_asts, axis=0) # Shape: (num_trees, hidden_dim)
-            c_asts = tf.stack(c_asts, axis=0) # Shape: (num_trees, hidden_dim)
+            # h_asts = tf.stack(h_asts, axis=0) # Shape: (num_trees, hidden_dim)
+            # c_asts = tf.stack(c_asts, axis=0) # Shape: (num_trees, hidden_dim)
 
-            # Merge ASTs
-            h_asts = self.dense_mergeallast(h_asts) # Shape: (num_trees, 1)
-            c_asts = self.dense_mergeallast(c_asts) # Shape: (num_trees, 1)
+            # # Merge ASTs
+            # h_asts = self.dense_mergeallast(h_asts) # Shape: (num_trees, 1)
+            # c_asts = self.dense_mergeallast(c_asts) # Shape: (num_trees, 1)
             
-            # Reshape to single dimension array
-            h_asts = tf.reshape(h_asts, (-1,)) # Shape: (num_trees,)
-            c_asts = tf.reshape(c_asts, (-1,)) # Shape: (num_trees,)
+            # # Reshape to single dimension array
+            # h_asts = tf.reshape(h_asts, (-1,)) # Shape: (num_trees,)
+            # c_asts = tf.reshape(c_asts, (-1,)) # Shape: (num_trees,)
 
-            # Increase dim
-            h_asts = tf.expand_dims(h_asts, axis=0) # Shape: (1, num_trees)
-            c_asts = tf.expand_dims(c_asts, axis=0) # Shape: (1, num_trees)
+            # # Increase dim
+            # h_asts = tf.expand_dims(h_asts, axis=0) # Shape: (1, num_trees)
+            # c_asts = tf.expand_dims(c_asts, axis=0) # Shape: (1, num_trees)
 
-            # Concatenate all artifacts in commit
-            h_commit = Concatenate()([h_commit, h_sc, h_asts]) # Shape: (1, 2*hidden_dim + num_trees)
-            c_commit = Concatenate()([c_commit, c_sc, c_asts]) # Shape: (1, 2*hidden_dim + num_trees)
+            # # Concatenate all artifacts in commit
+            # h_commit = Concatenate()([h_commit, h_sc, h_asts]) # Shape: (1, 2*hidden_dim + num_trees)
+            # c_commit = Concatenate()([c_commit, c_sc, c_asts]) # Shape: (1, 2*hidden_dim + num_trees)
 
             # Remove dim
             h_commit = tf.squeeze(h_commit, axis=0) # Shape: (2*hidden_dim + num_trees,)
             c_commit = tf.squeeze(c_commit, axis=0) # Shape: (2*hidden_dim + num_trees,)
 
-            # enc_commits.append(enc_commit)
-            # enc_commits.append(enc_sc)
+            # # enc_commits.append(enc_commit)
+            # # enc_commits.append(enc_sc)
             h_commits.append(h_commit)
             c_commits.append(c_commit)
 

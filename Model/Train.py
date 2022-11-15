@@ -127,7 +127,7 @@ def main_train(encoder:Encoder, decoder:Decoder, dataset, optimizer, epochs, che
                 print('Epoch {} Batch {} Loss {:.4f} Accuracy {:.4f}'.format(epoch + 1, batch, loss.numpy(), accuracy.numpy()))
 
         # Saving checkpoint every 2 epochs
-        if (epoch + 1) % 2 == 0:
+        if (epoch) % 2 == 1:
             checkpoint.save(file_prefix = checkpoint_prefix)
         
 
@@ -153,12 +153,12 @@ if __name__ == '__main__':
     checkpoint = tf.train.Checkpoint(optimizer=optimizer, encoder=encoder, decoder=decoder)
 
     # Train
-    losses, accuracies = main_train(encoder, decoder, dataset, optimizer, 3, checkpoint, checkpoint_prefix)
+    losses, accuracies = main_train(encoder, decoder, dataset, optimizer, 1, checkpoint, checkpoint_prefix)
 
     # Save losses and accuracies
     np.save('losses.npy', losses)
     np.save('accuracies.npy', accuracies)
 
     # Save encoder and decoder
-    encoder.save_weights('encoder.tf')
-    decoder.save_weights('decoder.tf')
+    encoder.save('ModelEncoder')
+    decoder.save_weights('ModelDecoder')
