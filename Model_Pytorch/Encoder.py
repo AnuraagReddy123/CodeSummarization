@@ -7,13 +7,17 @@ class Encoder(nn.Module):
     def __init__(self, vocab_size, hidden_dim, emb_dim):
         super(Encoder, self).__init__()
 
+        self.hidden_dim = hidden_dim
+        self.emb_dim = emb_dim
+        self.vocab_size = vocab_size
+
         self.emb_commit_msgs = nn.Embedding(vocab_size, emb_dim)
         self.emb_src_comments = nn.Embedding(vocab_size, emb_dim)
         self.emb_issue_titles = nn.Embedding(vocab_size, emb_dim)
 
         self.enc_commit_msgs = nn.LSTM(emb_dim, hidden_dim, 1, batch_first=True)
         self.enc_src_comments = nn.LSTM(emb_dim, hidden_dim, 1, batch_first=True)
-        self.emb_issue_titles = nn.LSTM(emb_dim, hidden_dim, 1, batch_first=True)
+        self.enc_issue_titles = nn.LSTM(emb_dim, hidden_dim, 1, batch_first=True)
 
         self.lin_mergeh = nn.Linear(2*hidden_dim, 1)
         self.lin_mergec = nn.Linear(2*hidden_dim, 1)
@@ -38,7 +42,7 @@ class Encoder(nn.Module):
 
         return batch_h, batch_c
 
-    def encoode (self, pr):
+    def encode (self, pr):
         commits = pr['commits']
         
         enc_commits = []
@@ -76,8 +80,8 @@ class Encoder(nn.Module):
         c_commits = torch.cat(c_commits, dim=1) # (1, num_commits, 2*hidden_dim)
 
         # Merge
-        h_commits = self.lin_merge(h_commits) # (1, num_commits, 1)
-        c_commits = self.lin_merge(c_commits) # (1, num_commits, 1)
+        h_commits = self.lin_mergeh(h_commits) # (1, num_commits, 1)
+        c_commits = self.lin_mergec(c_commits) # (1, num_commits, 1)
 
         # Transpose
         h_commits = h_commits.transpose(1, 2) # (1, 1, num_commits)
@@ -101,3 +105,31 @@ class Encoder(nn.Module):
         c = self.lin_finmergec(c) # (1, 1, hidden_dim)
 
         return h, c
+
+
+if __name__ == '__main__':
+    vocab_size = 100
+    hidden_dim = 10
+    emb_dim = 5
+
+    batch_size = 2
+    num_commits = 10
+
+    batch_pr = []
+    for i in range(batch_size):
+        pr = {}
+        pr['issue'] = torch.randint(0, vocab_size, (num_commits,))
+        pr['commits'] = []
+        for j in range(num_commits):
+            commit = {}
+            commit['cm'] = torch.randint(0, vocab_size, (num_commits,))
+            commit['comments'] = torch.randint(0, vocab_size, (num_commits,))
+            pr['commits'].append(commit)
+        batch_pr.append(pr)
+
+    encoder = Encoder(vocab_size, hidden_dim, emb_dim)
+    h, c = encoder(batch_pr)
+    print(h.shape) # (1, batch_size, hidden_dim)
+    print(c.shape) # (1, batch_size, hidden_dim)
+    print(h)
+    print(c)
