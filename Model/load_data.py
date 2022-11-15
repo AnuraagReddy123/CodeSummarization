@@ -14,7 +14,7 @@ Empty_commit =  {
     'cm': [1],
     'comments': [1],
     'old_asts': [{}]*N_ASTS,
-    'new_asts': [{}]*N_ASTS
+    'cur_asts': [{}]*N_ASTS
 }
 
 
@@ -105,9 +105,9 @@ def load_data(file_path):
             old_asts = adjust_asts(old_asts)
             dataset[key]['commits'][commit_sha]['old_asts'] = [build_tree(x) for x in old_asts]
 
-            new_asts = dataset[key]['commits'][commit_sha]['new_asts']
-            new_asts = adjust_asts(new_asts)
-            dataset[key]['commits'][commit_sha]['new_asts'] = [build_tree(x) for x in new_asts]
+            cur_asts = dataset[key]['commits'][commit_sha]['cur_asts']
+            cur_asts = adjust_asts(cur_asts)
+            dataset[key]['commits'][commit_sha]['cur_asts'] = [build_tree(x) for x in cur_asts]
         
         dataset[key]['commits'] = commits
 
