@@ -72,7 +72,7 @@ class Encoder(tf.keras.Model):
         return hlist, clist
 
     def encode(self, pr):
-         '''
+        '''
         Parameters:
             pr: Dictionary containing comments, issue titles, 
                 asts and commit messages
