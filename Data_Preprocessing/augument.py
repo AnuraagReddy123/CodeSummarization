@@ -161,54 +161,58 @@ if __name__=='__main__':
 
     for d_key in dataset:
 
-        print(f'\n--- datapoint {i} -------------------\n')
-        i += 1
-
-        username, repo_name, pull_number = parse_key(d_key)
-
-        user, repo, pull_req = get_obj(username, repo_name, pull_number, user, repo)
-
         try:
-            issue_res = requests.get(pull_req.issue_url)
-            dataset[d_key]['issue_title'] = issue_res.json()['title']
+
+            print(f'\n--- datapoint {i} -------------------\n')
+            i += 1
+
+            username, repo_name, pull_number = parse_key(d_key)
+
+            user, repo, pull_req = get_obj(username, repo_name, pull_number, user, repo)
+
+            try:
+                issue_res = requests.get(pull_req.issue_url)
+                dataset[d_key]['issue_title'] = issue_res.json()['title']
+            except:
+                print("No issue associated.")
+                dataset[d_key]['issue_title'] = ''
+
+            print("issue title check.")
+
+            # ---------------- ASTs ---------------------------------------
+
+            clone_repo(username, repo_name)
+            repo_path = path.join('repos', username, repo_name)
+
+            # print(f'Commits: {len(pull_req.get_commits())}')
+
+            for commit in pull_req.get_commits():
+
+                dataset[d_key]['commits'][f"'{commit.sha}'"]['cur_asts'] = []
+                dataset[d_key]['commits'][f"'{commit.sha}'"]['old_asts'] = []
+
+                print(f'Files: {len(commit.files)}')
+
+                for file in commit.files:
+
+                    if len(dataset[d_key]['commits'][f"'{commit.sha}'"]['cur_asts']) >= MAX_ASTS:
+                        break
+
+                    # Considering only the changes in JAVA files.
+                    if not file.filename.endswith('.java'):
+                        continue
+
+                    cur_text = get_cur_version(repo_path, file.sha)
+                    old_text = get_prev_version(cur_text, file.patch)
+
+                    cur_ast = get_ast(cur_text)
+                    old_ast = get_ast(old_text)
+
+                    dataset[d_key]['commits'][f"'{commit.sha}'"]['cur_asts'].append(cur_ast)
+                    dataset[d_key]['commits'][f"'{commit.sha}'"]['old_asts'].append(old_ast)
+
         except:
-            print("No issue associated.")
-            dataset[d_key]['issue_title'] = ''
-
-        print("issue title check.")
-
-        # ---------------- ASTs ---------------------------------------
-
-        clone_repo(username, repo_name)
-        repo_path = path.join('repos', username, repo_name)
-
-        # print(f'Commits: {len(pull_req.get_commits())}')
-
-        for commit in pull_req.get_commits():
-
-            dataset[d_key]['commits'][f"'{commit.sha}'"]['cur_asts'] = []
-            dataset[d_key]['commits'][f"'{commit.sha}'"]['old_asts'] = []
-
-            print(f'Files: {len(commit.files)}')
-
-            for file in commit.files:
-
-                if len(dataset[d_key]['commits'][f"'{commit.sha}'"]['cur_asts']) >= MAX_ASTS:
-                    break
-
-                # Considering only the changes in JAVA files.
-                if not file.filename.endswith('.java'):
-                    continue
-
-                cur_text = get_cur_version(repo_path, file.sha)
-                old_text = get_prev_version(cur_text, file.patch)
-
-                cur_ast = get_ast(cur_text)
-                old_ast = get_ast(old_text)
-
-                dataset[d_key]['commits'][f"'{commit.sha}'"]['cur_asts'].append(cur_ast)
-                dataset[d_key]['commits'][f"'{commit.sha}'"]['old_asts'].append(old_ast)
-
+            continue
         
     with open(path.join('..', 'Data', 'dataset_aug.json'), 'w+') as f:
         json.dump(dataset, f)
