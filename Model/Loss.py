@@ -35,8 +35,9 @@ def accuracy_fn(y_true, y_pred):
     pred_values = K.cast(K.argmax(y_pred, axis=-1), dtype='int32')
     correct = K.cast(K.equal(y_true, pred_values), dtype='float32')
 
-    # 0 is padding, don't include those
-    mask = K.cast(K.greater(y_true, 0), dtype='float32')
+    # 1 is padding, don't include those
+    # mask = K.cast(K.greater(y_true, 0), dtype='float32')
+    mask = K.cast(y_true != 1, dtype='float32')
     n_correct = K.sum(mask * correct)
     n_total = K.sum(mask)
   
