@@ -25,6 +25,9 @@ class Decoder(nn.Module):
 
         logits = self.lin(out) # (batch_size, max_len, vocab_size)
 
+        # softmax
+        logits = torch.softmax(logits, dim=-1)
+
         return logits, h, c
 
 
