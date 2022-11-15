@@ -138,7 +138,7 @@ def main_train(encoder:Encoder, decoder:Decoder, dataset, optimizer, epochs, che
 if __name__ == '__main__':
     # Load dataset
     # dataset = np.load('dataset.npy', allow_pickle=True)
-    dataset = load_data(os.path.join('Data', 'sample_dataset_proc.json'))
+    dataset = load_data(os.path.join('Data', 'dataset_preproc.json'))
 
     # Create encoder and decoder
     encoder = Encoder(hidden_dim=HIDDEN_DIM, vocab_size=VOCAB_SIZE, embed_dim=EMBEDDING_DIM)
