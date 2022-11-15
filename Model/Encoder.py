@@ -207,7 +207,7 @@ if __name__ == '__main__':
         pr['commits'][i]['comments'] = np.array([2])
         
         pr['commits'][i]['old_asts'] = []
-        pr['commits'][i]['new_asts'] = []
+        pr['commits'][i]['cur_asts'] = []
 
         for j in range(5):
             root = Node(0, 0)
@@ -219,7 +219,7 @@ if __name__ == '__main__':
             root = Node(0, 0)
             root.add_child(Node(1, 1))
 
-            pr['commits'][i]['new_asts'].append(root)
+            pr['commits'][i]['cur_asts'].append(root)
         
     # Create model
     encoder = Encoder(128, 150, 256)
