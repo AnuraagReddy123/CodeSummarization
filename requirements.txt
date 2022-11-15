@@ -5,6 +5,7 @@ nltk==3.7
 numpy==1.23.4
 PyGithub==1.56
 pygraphviz==1.10
+python-dotenv==0.21.0
 requests==2.22.0
 tensorflow==2.10.0
 tree_sitter==0.20.0
