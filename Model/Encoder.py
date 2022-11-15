@@ -88,7 +88,7 @@ class Encoder(tf.keras.Model):
             inp_commit = commit['cm'] # Shape: (max_len,)
             inp_asts = [] # Shape: [old_ast, new_ast] * num_trees
             
-            for old_ast, new_ast in zip(commit['old_asts'], commit['new_asts']):
+            for old_ast, new_ast in zip(commit['old_asts'], commit['cur_asts']):
                 inp_asts.append([old_ast, new_ast])
             
             # Embedding
