@@ -161,30 +161,28 @@ if __name__=='__main__':
 
     for d_key in dataset:
 
+        print(f'\n--- datapoint {i} -------------------\n')
+        i += 1
+
+        username, repo_name, pull_number = parse_key(d_key)
+
+        user, repo, pull_req = get_obj(username, repo_name, pull_number, user, repo)
+
+        # -------------- add issue title --------------------
+
         try:
+            issue_res = requests.get(pull_req.issue_url)
+            dataset[d_key]['issue_title'] = issue_res.json()['title']
+        except:
+            print("No issue associated.")
+            dataset[d_key]['issue_title'] = ''
 
-            print(f'\n--- datapoint {i} -------------------\n')
-            i += 1
+        print("issue title check.")
 
-            username, repo_name, pull_number = parse_key(d_key)
-
-            user, repo, pull_req = get_obj(username, repo_name, pull_number, user, repo)
-
-            try:
-                issue_res = requests.get(pull_req.issue_url)
-                dataset[d_key]['issue_title'] = issue_res.json()['title']
-            except:
-                print("No issue associated.")
-                dataset[d_key]['issue_title'] = ''
-
-            print("issue title check.")
-
-            # ---------------- ASTs ---------------------------------------
-
+        # ---------------- ASTs ---------------------------------------
+        try:
             clone_repo(username, repo_name)
             repo_path = path.join('repos', username, repo_name)
-
-            # print(f'Commits: {len(pull_req.get_commits())}')
 
             for commit in pull_req.get_commits():
 
