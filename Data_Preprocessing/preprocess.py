@@ -39,19 +39,21 @@ def _preprocess_text(text: str):
 
 def preprocess_text(dataset: dict):
 
+    i = 1
     for key in dataset:
 
+        print(f'--------- datapoint {i} --------------')
+        i += 1
+        
         dataset[key]['body'] = ' '.join(_preprocess_text(dataset[key]['body']))
         
         del dataset[key]['id']
         del dataset[key]['cms']
 
-        i = 0
         for commit_sha in dataset[key]['commits']:
 
             cm = dataset[key]['commits'][commit_sha]['cm']
             dataset[key]['commits'][commit_sha]['cm'] = ' '.join(_preprocess_text(cm))
-            i += 1
 
             comment_para = ' '.join(dataset[key]['commits'][commit_sha]['comments'])
             comment_para = ' '.join(_preprocess_text(comment_para))
