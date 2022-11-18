@@ -1,6 +1,4 @@
 venv/
-Data/
-!Data/dataset_preproc.json
 Data_Preprocessing/repos/
 Data_Preprocessing/temp/
 Data_Preprocessing/vocab.txt

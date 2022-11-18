@@ -32,8 +32,8 @@ class Decoder(nn.Module):
 
 
 if __name__ == '__main__':
-    batch_size = 2
-    max_len = 5
+    batch_size = 32
+    max_len = 100
     hidden_dim = 10
     vocab_size = 20
     embed_dim = 15

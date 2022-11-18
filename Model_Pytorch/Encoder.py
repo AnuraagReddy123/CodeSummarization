@@ -4,20 +4,20 @@ import torch.nn as nn
 
 class Encoder(nn.Module):
 
-    def __init__(self, vocab_size, hidden_dim, emb_dim):
+    def __init__(self, vocab_size, hidden_dim, embed_dim):
         super(Encoder, self).__init__()
 
         self.hidden_dim = hidden_dim
-        self.emb_dim = emb_dim
+        self.emb_dim = embed_dim
         self.vocab_size = vocab_size
 
-        self.emb_commit_msgs = nn.Embedding(vocab_size, emb_dim)
-        self.emb_src_comments = nn.Embedding(vocab_size, emb_dim)
-        self.emb_issue_titles = nn.Embedding(vocab_size, emb_dim)
+        self.emb_commit_msgs = nn.Embedding(vocab_size, embed_dim)
+        self.emb_src_comments = nn.Embedding(vocab_size, embed_dim)
+        self.emb_issue_titles = nn.Embedding(vocab_size, embed_dim)
 
-        self.enc_commit_msgs = nn.LSTM(emb_dim, hidden_dim, 1, batch_first=True)
-        self.enc_src_comments = nn.LSTM(emb_dim, hidden_dim, 1, batch_first=True)
-        self.enc_issue_titles = nn.LSTM(emb_dim, hidden_dim, 1, batch_first=True)
+        self.enc_commit_msgs = nn.LSTM(embed_dim, hidden_dim, 1, batch_first=True)
+        self.enc_src_comments = nn.LSTM(embed_dim, hidden_dim, 1, batch_first=True)
+        self.enc_issue_titles = nn.LSTM(embed_dim, hidden_dim, 1, batch_first=True)
 
         self.lin_mergeh = nn.Linear(2*hidden_dim, 1)
         self.lin_mergec = nn.Linear(2*hidden_dim, 1)
@@ -27,8 +27,19 @@ class Encoder(nn.Module):
 
     def initialize_hidden_state(self):
         return torch.zeros((1, 1, self.hidden_dim)), torch.zeros((1, 1, self.hidden_dim))
+        # return torch.zeros((1, 2, 10, self.hidden_dim)), torch.zeros((1, 2, 10, self.hidden_dim))
 
     def forward(self, batch_pr):
+
+        # emb = self.emb_src_comments(batch_pr)
+        # print(emb.shape)
+        # h0, c0 = self.initialize_hidden_state()
+        # print(h0.shape)
+        # enc_src_comments, (h_commit_msgs, c_commit_msgs) = self.enc_src_comments(emb, (h0, c0))
+
+        # return enc_src_comments, h_commit_msgs, c_commit_msgs
+
+        # exit(0)
         batch_h = []
         batch_c = []
 
@@ -108,22 +119,33 @@ class Encoder(nn.Module):
 
 
 if __name__ == '__main__':
+
     vocab_size = 100
     hidden_dim = 10
     emb_dim = 5
 
     batch_size = 2
     num_commits = 10
+    max_seq_len = 100
+
+    # batch_src_comments = torch.randint(0, vocab_size, (batch_size, num_commits, max_seq_len))
+
+    # encoder = Encoder(vocab_size, hidden_dim, emb_dim)
+    # enc_src_comments, h, c = encoder(batch_src_comments)
+
+    # print(enc_src_comments.shape)
+
+    # exit(0)
 
     batch_pr = []
     for i in range(batch_size):
         pr = {}
-        pr['issue'] = torch.randint(0, vocab_size, (num_commits,))
+        pr['issue'] = torch.randint(0, vocab_size, (max_seq_len,))
         pr['commits'] = []
         for j in range(num_commits):
             commit = {}
-            commit['cm'] = torch.randint(0, vocab_size, (num_commits,))
-            commit['comments'] = torch.randint(0, vocab_size, (num_commits,))
+            commit['cm'] = torch.randint(0, vocab_size, (max_seq_len,))
+            commit['comments'] = torch.randint(0, vocab_size, (max_seq_len,))
             pr['commits'].append(commit)
         batch_pr.append(pr)
 
