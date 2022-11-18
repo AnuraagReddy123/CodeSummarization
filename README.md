@@ -20,7 +20,7 @@ bash setup.sh
 pip install gdown
 mkdir Data
 cd Data
-gdown 19PARrtkQ2GfFPodEkkafKogRQAJvQofL -O dataset.json
+gdown 19PARrtkQ2GfFPodEkkafKogRQAJvQofL -O dataset_all.json
 ```
 
 5. Run the steps in Data_Preprocessing/README.md
