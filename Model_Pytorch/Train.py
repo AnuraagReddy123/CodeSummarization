@@ -1,4 +1,4 @@
-from .Model import Model
+from Model import Model
 from Loss import loss_fn, accuracy_fn
 from Utils.Constants import *
 
@@ -82,8 +82,9 @@ def train_step(input_pr, target_prdesc_shift, target_prdesc, model: Model, optim
         optimizer: The optimizer
     '''
     logits = model(input_pr, target_prdesc_shift)
-    loss = loss_fn(target_prdesc, logits)
-    accuracy = accuracy_fn(target_prdesc, logits)
+    target_prdesc = torch.tensor(target_prdesc, dtype=torch.long, device=device)
+    loss = loss_fn(logits, target_prdesc)
+    accuracy = accuracy_fn(logits, target_prdesc)
 
     optimizer.zero_grad()
     loss.backward()
@@ -108,7 +109,6 @@ def main_train(model: Model, dataset, optimizer, epochs):
     for epoch in range(epochs):
         # Get start time
         start = time.time()
-
         # For every batch
         for batch, (batch_pr, batch_prdesc_shift, batch_prdesc) in enumerate(generate_batch(dataset)):
             # Train the batch
@@ -125,18 +125,18 @@ def main_train(model: Model, dataset, optimizer, epochs):
 
 if __name__ == '__main__':
     # Load dataset
-    dataset = load_data(os.path.join('..', 'Data', 'dataset_preproc.json'))
+    dataset = load_data(os.path.join('Data', 'dataset_preproc.json'))
 
     model = Model(VOCAB_SIZE, HIDDEN_DIM, EMBEDDING_DIM).to(device)
     optimizer = optim.Adam(model.parameters(), lr=0.001)
 
-    losses, accuracies = main_train(model, dataset, optimizer, 1)
+    losses, accuracies = main_train(model, dataset, optimizer, 10)
 
     # Save model
-    torch.save(model.state_dict(), os.path.join('..', 'Model_Pytorch', 'model.pt'))
+    torch.save(model.state_dict(), os.path.join('Model_Pytorch', 'model.pt'))
 
-    # Save losses and accuracies
-    np.save(os.path.join('..', 'Model_Pytorch', 'losses.npy'), np.array(losses))
-    np.save(os.path.join('..', 'Model_Pytorch', 'accuracies.npy'), np.array(accuracies))
+    # # Save losses and accuracies
+    # np.save(os.path.join('Model_Pytorch', 'losses.npy'), np.array(losses))
+    # np.save(os.path.join('Model_Pytorch', 'accuracies.npy'), np.array(accuracies))
 
     print('Done')

@@ -13,6 +13,8 @@ def loss_fn (logits, target_prdesc):
     '''
     # Mask the loss
     mask = (target_prdesc != 1).float() # The padding value is 1
+    # Transpose the logits
+    logits = logits.transpose(1, 2)
     loss = nn.CrossEntropyLoss(reduction='none')(logits, target_prdesc)
     loss = loss * mask
     loss = loss.sum() / mask.sum()

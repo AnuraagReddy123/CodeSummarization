@@ -62,7 +62,7 @@ class Encoder(nn.Module):
         h_commits = []
         c_commits = []
 
-        for commit in commits:
+        for commit in commits.values():
             inp_sc = commit['comments']
             inp_commit = commit['cm']
 
@@ -106,7 +106,7 @@ class Encoder(nn.Module):
 
 
         # Encode the issue
-        inp_issue = pr['issue']
+        inp_issue = pr['issue_title']
         inp_issue = torch.tensor(inp_issue).to(device)
         inp_issue = inp_issue.unsqueeze(0)
 
