@@ -1,6 +1,8 @@
 import torch 
 import torch.nn as nn
 
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print(device)
 
 class Encoder(nn.Module):
 
@@ -64,6 +66,10 @@ class Encoder(nn.Module):
             inp_sc = commit['comments']
             inp_commit = commit['cm']
 
+            # convert to tensor
+            inp_sc = torch.tensor(inp_sc).to(device)
+            inp_commit = torch.tensor(inp_commit).to(device)
+
             # Increase dim
             inp_sc = inp_sc.unsqueeze(0)
             inp_commit = inp_commit.unsqueeze(0)
@@ -101,6 +107,7 @@ class Encoder(nn.Module):
 
         # Encode the issue
         inp_issue = pr['issue']
+        inp_issue = torch.tensor(inp_issue).to(device)
         inp_issue = inp_issue.unsqueeze(0)
 
         emb_issue_titles = self.emb_issue_titles(inp_issue) # (1, seq_len, emb_dim)

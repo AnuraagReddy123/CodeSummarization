@@ -3,9 +3,12 @@ import torch.nn as nn
 from Encoder import Encoder
 from Utils.Structures import Node
 
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print(device)
+
 class Decoder(nn.Module):
 
-    def __init__ (self, hidden_dim, vocab_size, embed_dim):
+    def __init__ (self, vocab_size, hidden_dim, embed_dim):
         super(Decoder, self).__init__()
 
         self.hidden_dim = hidden_dim
@@ -20,6 +23,8 @@ class Decoder(nn.Module):
         '''
         batch_prdesc: (batch_size, max_len)
         '''
+        # Convert to tensor
+        batch_prdesc = torch.tensor(batch_prdesc).to(device) # (batch_size, max_len)
         emb_prdesc = self.emb(batch_prdesc) # (batch_size, max_len, embed_dim)
         out, (h, c) = self.lstm(emb_prdesc, (h_enc, c_enc)) # (batch_size, max_len, hidden_dim), (1, batch_size, hidden_dim), (1, batch_size, hidden_dim)
 

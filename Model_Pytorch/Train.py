@@ -1,9 +1,10 @@
-from Encoder import Encoder
-from Decoder import Decoder
-# from Loss import loss_func, accuracy_fn
+from .Model import Model
+from Loss import loss_fn, accuracy_fn
 from Utils.Constants import *
 
 # import tensorflow as tf
+import torch
+import torch.nn as nn
 import numpy as np
 import os
 import time
@@ -12,7 +13,8 @@ import json
 import torch.nn as nn
 import torch.optim as optim
 
-# os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print(device)
 
 
 # def readfromjson(path):
@@ -29,138 +31,112 @@ import torch.optim as optim
 #         data = json.load(f)
 #     return data
 
-# def generate_batch(dataset):
-#     '''
-#     Generate a batch
+def generate_batch(dataset):
+    '''
+    Generate a batch
 
-#     Returns:
-#         A batch (batch_pr, batch_prdesc_shift, batch_prdesc)
-#     '''
+    Returns:
+        A batch (batch_pr, batch_prdesc_shift, batch_prdesc)
+    '''
 
-#     batch_size = 2
+    batch_size = 2
 
-#     keys = list(dataset.keys())
-#     N = len(keys)
+    keys = list(dataset.keys())
+    N = len(keys)
 
-#     for i in range(0, N, batch_size):
+    for i in range(0, N, batch_size):
 
-#         batch_pr = []
-#         batch_prdesc_shift = []
-#         batch_prdesc = []
+        batch_pr = []
+        batch_prdesc_shift = []
+        batch_prdesc = []
 
-#         for j in range(min(batch_size, N-i)):
+        for j in range(min(batch_size, N-i)):
 
-#             key = keys[i+j]
-#             pr_desc: list = dataset[key]['body']
+            key = keys[i+j]
+            pr_desc: list = dataset[key]['body']
 
-#             batch_pr.append(dataset[key])
-#             # append start in the beginning
-#             batch_prdesc_shift.append([0] + pr_desc)
-#             batch_prdesc.append(pr_desc)
+            batch_pr.append(dataset[key])
+            # append start in the beginning
+            batch_prdesc_shift.append([0] + pr_desc)
+            batch_prdesc.append(pr_desc)
 
-#         yield (batch_pr, np.array(batch_prdesc_shift), np.array(batch_prdesc))
+        yield (batch_pr, np.array(batch_prdesc_shift), np.array(batch_prdesc))
 
 
 
 
 # @tf.function
-# def train_step(input_pr, target_prdesc_shift, target_prdesc, encoder: Encoder, decoder: Decoder, optimizer):
-#     '''
-#     Train a batch and return loss
+def train_step(input_pr, target_prdesc_shift, target_prdesc, model: Model, optimizer):
+    '''
+    Train a batch and return loss
 
-#     Parameters:
-#         input_pr: The input pr
-#             Shape: [dict] * batch_size
-#         target_prdesc_shift: The shifted target prdesc
-#             Shape: (batch_size, max_pr_len)
-#         target_prdesc: The target prdesc
-#             Shape: (batch_size, max_pr_len)
-#         encoder: The encoder
-#         decoder: The decoder
-#         optimizer: The optimizer
-#     '''
-    
-#     with tf.GradientTape() as tape:
-#         # Encode
-#         h_enc, c_enc = encoder(input_pr)
+    Parameters:
+        input_pr: The input pr
+            Shape: [dict] * batch_size
+        target_prdesc_shift: The shifted target prdesc
+            Shape: (batch_size, max_pr_len)
+        target_prdesc: The target prdesc
+            Shape: (batch_size, max_pr_len)
+        encoder: The encoder
+        decoder: The decoder
+        optimizer: The optimizer
+    '''
+    logits = model(input_pr, target_prdesc_shift)
+    loss = loss_fn(target_prdesc, logits)
+    accuracy = accuracy_fn(target_prdesc, logits)
 
-#         # Decode
-#         logits, _, _ = decoder(target_prdesc_shift, h_enc, c_enc)
+    optimizer.zero_grad()
+    loss.backward()
+    optimizer.step()
 
-#         # Calculate loss and accuracy
-#         loss = loss_func(target_prdesc, logits)
-#         accuracy = accuracy_fn(target_prdesc, logits)
+    return loss, accuracy
 
-#     # Calculate gradients
-#     variables = encoder.trainable_variables + decoder.trainable_variables
-#     gradients = tape.gradient(loss, variables)
+def main_train(model: Model, dataset, optimizer, epochs):
+    '''
+    Train the model
 
-#     # Apply gradients
-#     optimizer.apply_gradients(zip(gradients, variables))
+    Parameters:
+        encoder: The encoder
+        decoder: The decoder
+        dataset: The dataset
+        optimizer: The optimizer
+        epochs: The number of epochs
+    '''
+    losses = []
+    accuracies = []
 
-#     return loss, accuracy
+    for epoch in range(epochs):
+        # Get start time
+        start = time.time()
 
-# def main_train(encoder:Encoder, decoder:Decoder, dataset, optimizer, epochs, checkpoint, checkpoint_prefix):
-#     '''
-#     Train the model
-
-#     Parameters:
-#         encoder: The encoder
-#         decoder: The decoder
-#         dataset: The dataset
-#         optimizer: The optimizer
-#         epochs: The number of epochs
-#         checkpoint: The checkpoint
-#         checkpoint_prefix: The checkpoint prefix
-#     '''
-#     losses = []
-#     accuracies = []
-
-#     for epoch in range(epochs):
-#         # Get start time
-#         start = time.time()
-
-#         # For every batch
-#         for batch, (batch_pr, batch_prdesc_shift, batch_prdesc) in enumerate(generate_batch(dataset)):
-#             # Train the batch
-#             loss, accuracy = train_step(batch_pr, batch_prdesc_shift, batch_prdesc, encoder, decoder, optimizer)
-#             if batch % 1 == 0:
-#                 losses.append(loss)
-#                 accuracies.append(accuracy)
-#                 print('Epoch {} Batch {} Loss {:.4f} Accuracy {:.4f}'.format(epoch + 1, batch, loss.numpy(), accuracy.numpy()))
-
-#         # Saving checkpoint every 2 epochs
-#         if (epoch) % 2 == 1:
-#             checkpoint.save(file_prefix = checkpoint_prefix)
+        # For every batch
+        for batch, (batch_pr, batch_prdesc_shift, batch_prdesc) in enumerate(generate_batch(dataset)):
+            # Train the batch
+            loss, accuracy = train_step(batch_pr, batch_prdesc_shift, batch_prdesc, model, optimizer)
+            if batch % 1 == 0:
+                losses.append(loss)
+                accuracies.append(accuracy)
+                print('Epoch {} Batch {} Loss {:.4f} Accuracy {:.4f}'.format(epoch + 1, batch, loss.item(), accuracy.item()))
         
 
-#         print('Time taken for 1 epoch {:.4f} sec\n'.format(time.time() - start))
+        print('Time taken for 1 epoch {:.4f} sec\n'.format(time.time() - start))
 
-#     return losses, accuracies
+    return losses, accuracies
 
 if __name__ == '__main__':
     # Load dataset
     dataset = load_data(os.path.join('..', 'Data', 'dataset_preproc.json'))
 
-    # Create encoder and decoder
-    encoder = Encoder(hidden_dim=HIDDEN_DIM, vocab_size=VOCAB_SIZE, embed_dim=EMBEDDING_DIM)
-    decoder = Decoder(hidden_dim=HIDDEN_DIM, vocab_size=VOCAB_SIZE, embed_dim=EMBEDDING_DIM)
+    model = Model(VOCAB_SIZE, HIDDEN_DIM, EMBEDDING_DIM).to(device)
+    optimizer = optim.Adam(model.parameters(), lr=0.001)
 
-    # Create optimizer
-    optimizer =
+    losses, accuracies = main_train(model, dataset, optimizer, 1)
 
-    # # Create checkpoint
-    # checkpoint_dir = './training_checkpoints'
-    # checkpoint_prefix = os.path.join(checkpoint_dir, 'ckpt')
-    # checkpoint = tf.train.Checkpoint(optimizer=optimizer, encoder=encoder, decoder=decoder)
+    # Save model
+    torch.save(model.state_dict(), os.path.join('..', 'Model_Pytorch', 'model.pt'))
 
-    # # Train
-    # losses, accuracies = main_train(encoder, decoder, dataset, optimizer, 1, checkpoint, checkpoint_prefix)
+    # Save losses and accuracies
+    np.save(os.path.join('..', 'Model_Pytorch', 'losses.npy'), np.array(losses))
+    np.save(os.path.join('..', 'Model_Pytorch', 'accuracies.npy'), np.array(accuracies))
 
-    # # Save losses and accuracies
-    # np.save('losses.npy', losses)
-    # np.save('accuracies.npy', accuracies)
-
-    # # Save encoder and decoder
-    # encoder.save('ModelEncoder')
-    # decoder.save_weights('ModelDecoder')
+    print('Done')
