@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from .Model import Model
+from Model import Model
 from Utils import Constants
 from load_data import load_data
 import os
@@ -21,5 +21,5 @@ if __name__=='__main__':
 
     batch_prdesc = model.predict(batch_pr, Constants.MAX_LEN)
 
-    
+
 
