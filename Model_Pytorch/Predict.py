@@ -24,7 +24,7 @@ if __name__=='__main__':
     batch_pr, batch_prdesc_shift, batch_prdesc = next(generate_batch(dataset, 1))
 
     model = Model(Constants.VOCAB_SIZE, Constants.HIDDEN_DIM, Constants.EMBEDDING_DIM).to(device)
-    model.load_state_dict(torch.load('Model_Pytorch/model_final.pt'))
+    model.load_state_dict(torch.load('Model_Pytorch/model_best.pt'))
 
     batch_prdesc = model.predict(batch_pr, Constants.MAX_LEN)
 

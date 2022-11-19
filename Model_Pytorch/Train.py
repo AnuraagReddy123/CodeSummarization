@@ -18,7 +18,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(device)
 
 EPOCHS = 500
-BATCH_SIZE = 1
+BATCH_SIZE = 2
 
 # def readfromjson(path):
 #     '''
@@ -89,7 +89,6 @@ def train_step(input_pr, target_prdesc_shift, target_prdesc, model: Model, optim
     target_prdesc = torch.tensor(target_prdesc, dtype=torch.long, device=device)
     loss = loss_fn(logits, target_prdesc)
     accuracy = accuracy_fn(logits, target_prdesc)
-    exit(0)
 
     optimizer.zero_grad()
     loss.backward()

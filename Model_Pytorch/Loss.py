@@ -13,11 +13,14 @@ def loss_fn (logits, target_prdesc):
     '''
     # Mask the loss
     mask = (target_prdesc != 1).float() # The padding value is 1
-    print("Mask: ", mask)
+    # print("Mask: ", mask)
     # Transpose the logits
     logits = logits.transpose(1, 2)
     loss = nn.CrossEntropyLoss(reduction='none')(logits, target_prdesc)
+    # print(loss, loss.shape)
     loss = loss * mask
+    # print(loss, loss.shape)
+    # exit(0)
     loss = loss.sum() / mask.sum()
 
     return loss
@@ -39,9 +42,8 @@ def accuracy_fn (logits, target_prdesc):
     correct = correct * mask
     accuracy = correct.sum() / mask.sum()
 
-    print("Compare: ")
-    print(pred)
-    print(target_prdesc)
+    print("Pred: ", pred)
+    print("Target :", target_prdesc)
     print("Correct: ", correct.sum(), " Mask: ", mask.sum())
 
     return accuracy 

@@ -16,12 +16,26 @@ from nltk import word_tokenize
 from nltk.corpus import stopwords
 from nltk.stem.porter import PorterStemmer
 from nltk import pos_tag
+import re
 
 import json
 
 MAX_VOCAB = 10000
 
 def _preprocess_text(text: str):
+
+    # Remove some regex patterns
+
+    text = re.sub(r'\\[nr]', ' ', text)
+    text = re.sub(r'(^|\s)<[\w.-]+@(?=[a-z\d][^.]*\.)[a-z\d.-]*[^.]>', ' ', text)
+    text = re.sub(r'https?://[-a-zA-Z0-9@:%._+~#?=/]+(?=($|[^-a-zA-Z0-9@:%._+~#?=/]))', ' ', text)
+    text = re.sub(r'#[\d]+', ' ', text)
+    text = re.sub(r'^(signed-off-by|co-authored-by|also-by):', ' ', text)
+    text = re.sub(r'@\S+', ' ', text)
+    text = re.sub(r'^#+', ' ', text)
+    text = re.sub(r'(^|\s|-)[\d]+(\.[\d]+){1,}', ' ', text)
+    text = re.sub(r'(^|\s)[\dA-Fa-f-]{7,}(?=(\s|$))', ' ', text)
+    text = re.sub(r'(^|\s|-)[\d]+(?=(\s|$))', ' ', text)
 
     text = text.lower()
     text_p = "".join([char if char not in string.punctuation else " " for char in text])
@@ -170,10 +184,10 @@ if __name__=='__main__':
 
     dataset = preprocess_text(dataset)
 
-    if not path.exists('vocab.txt'):
-        vocab: list = compute_vocab(dataset)
-        with open('vocab.txt', 'w+') as f:
-            f.write(str(vocab))
+    vocab: list = compute_vocab(dataset)
+    
+    with open('vocab.txt', 'w+') as f:
+        f.write(str(vocab))
 
     with open('vocab.txt', 'r') as f:
         vocab = eval(f.read())
