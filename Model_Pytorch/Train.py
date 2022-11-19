@@ -143,6 +143,7 @@ if __name__ == '__main__':
     dataset = load_data(os.path.join('Data', 'dataset_preproc.json'))
 
     model = Model(Constants.VOCAB_SIZE, Constants.HIDDEN_DIM, Constants.EMBEDDING_DIM).to(device)
+    model = nn.DataParallel(model)
     optimizer = optim.Adam(model.parameters(), lr=0.001)
 
     losses, accuracies = main_train(model, dataset, optimizer, epochs=EPOCHS)

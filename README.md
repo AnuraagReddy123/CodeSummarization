@@ -17,8 +17,11 @@ bash setup.sh
 4. Download the dataset in to Data/dataset.json
 ```
 pip install gdown
-mkcd Data
-gdown 19PARrtkQ2GfFPodEkkafKogRQAJvQofL -O dataset_all.json
+cd Data
+gdown 19PARrtkQ2GfFPodEkkafKogRQAJvQofL
+unzip pr_dump.json.zip
+mv pr_dump.json dataset_all.json
+python shrink.py
 ```
 
 5. Run the steps in Data_Preprocessing/README.md
