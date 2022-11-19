@@ -101,6 +101,8 @@ def load_data(file_path):
             commits[commit_sha]['cm'] = np.array(commits[commit_sha]['cm'] if len(commits[commit_sha]['cm']) > 0 else [1])
             commits[commit_sha]['comments'] = np.array(commits[commit_sha]['comments'] if len(commits[commit_sha]['comments']) > 0 else [1])
 
+            continue
+        
             old_asts = dataset[key]['commits'][commit_sha]['old_asts']
             old_asts = adjust_asts(old_asts)
             dataset[key]['commits'][commit_sha]['old_asts'] = [build_tree(x) for x in old_asts]

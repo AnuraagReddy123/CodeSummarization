@@ -31,15 +31,13 @@ print(device)
 #         data = json.load(f)
 #     return data
 
-def generate_batch(dataset):
+def generate_batch(dataset, batch_size):
     '''
     Generate a batch
 
     Returns:
         A batch (batch_pr, batch_prdesc_shift, batch_prdesc)
     '''
-
-    batch_size = 2
 
     keys = list(dataset.keys())
     N = len(keys)
@@ -110,7 +108,7 @@ def main_train(model: Model, dataset, optimizer, epochs):
         # Get start time
         start = time.time()
         # For every batch
-        for batch, (batch_pr, batch_prdesc_shift, batch_prdesc) in enumerate(generate_batch(dataset)):
+        for batch, (batch_pr, batch_prdesc_shift, batch_prdesc) in enumerate(generate_batch(dataset, 32)):
             # Train the batch
             loss, accuracy = train_step(batch_pr, batch_prdesc_shift, batch_prdesc, model, optimizer)
             if batch % 1 == 0:

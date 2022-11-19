@@ -93,6 +93,8 @@ def compute_vocab(dataset: dict):
             for x in dataset[key]['commits'][commit_sha]['comments'].split():
                 _add(x)
 
+            continue
+
             old_asts = dataset[key]['commits'][commit_sha]['old_asts']
             cur_asts = dataset[key]['commits'][commit_sha]['cur_asts']
 
@@ -143,6 +145,8 @@ def encode_word_to_index(dataset: dict, vocab: list):
 
             comments = dataset[key]['commits'][commit_sha]['comments']
             dataset[key]['commits'][commit_sha]['comments'] = [_index(x) for x in comments.split()]
+
+            continue
 
             old_asts = dataset[key]['commits'][commit_sha]['old_asts']
             cur_asts = dataset[key]['commits'][commit_sha]['cur_asts']

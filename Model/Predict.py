@@ -79,7 +79,7 @@ if __name__ == "__main__":
     decoder.load_weights('decoder.h5')
 
     # Generate a batch
-    batch_pr, batch_prdesc_shift, batch_prdesc = next(generate_batch(dataset))
+    batch_pr, batch_prdesc_shift, batch_prdesc = next(generate_batch(dataset, 2))
 
     # Predict
     result = predict(batch_pr, encoder, decoder)

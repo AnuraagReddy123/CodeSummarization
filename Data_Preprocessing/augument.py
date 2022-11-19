@@ -179,6 +179,9 @@ if __name__=='__main__':
 
         print("issue title check.")
 
+        continue
+        # ASTs are not needed now
+
         # ---------------- ASTs ---------------------------------------
         try:
             clone_repo(username, repo_name)

@@ -28,7 +28,7 @@ class Encoder(nn.Module):
         self.lin_finmergec = nn.Linear(10+hidden_dim, hidden_dim)
 
     def initialize_hidden_state(self):
-        return torch.zeros((1, 1, self.hidden_dim)), torch.zeros((1, 1, self.hidden_dim))
+        return torch.zeros((1, 1, self.hidden_dim)).to(device), torch.zeros((1, 1, self.hidden_dim)).to(device)
         # return torch.zeros((1, 2, 10, self.hidden_dim)), torch.zeros((1, 2, 10, self.hidden_dim))
 
     def forward(self, batch_pr):
