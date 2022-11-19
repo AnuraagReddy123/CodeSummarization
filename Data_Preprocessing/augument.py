@@ -152,7 +152,7 @@ if __name__=='__main__':
     if not path.isdir('repos'):
         os.makedirs('repos')
 
-    with open(path.join('..', 'Data', 'dataset.json')) as f:
+    with open(path.join('Data', 'dataset.json')) as f:
         dataset = json.load(f)
     
     user, repo = [None]*2
@@ -215,7 +215,7 @@ if __name__=='__main__':
         except:
             continue
         
-    with open(path.join('..', 'Data', 'dataset_aug.json'), 'w+') as f:
+    with open(path.join('Data', 'dataset_aug.json'), 'w+') as f:
         json.dump(dataset, f)
     
     ed_g = time.time()

@@ -29,7 +29,7 @@ class Model(nn.Module):
         batch_pr: (batch_size, max_len)
         '''
         h_enc, c_enc = self.encoder(batch_pr) # (1, batch_size, hidden_dim), (1, batch_size, hidden_dim)
-        batch_prdesc_shift = torch.zeros((batch_pr.shape[0], 0), dtype=torch.long) # (batch_size, 1)
+        batch_prdesc_shift = torch.zeros((len(batch_pr), 1), dtype=torch.long) # (batch_size, 1)
         h = h_enc
         c = c_enc
         batch_prdesc = []

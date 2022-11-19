@@ -12,10 +12,13 @@ from load_data import load_data
 import json
 import torch.nn as nn
 import torch.optim as optim
+import math
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(device)
 
+EPOCHS = 30
+BATCH_SIZE = 32
 
 # def readfromjson(path):
 #     '''
@@ -104,17 +107,25 @@ def main_train(model: Model, dataset, optimizer, epochs):
     losses = []
     accuracies = []
 
+    max_accuracy = - math.inf
+
     for epoch in range(epochs):
         # Get start time
         start = time.time()
         # For every batch
-        for batch, (batch_pr, batch_prdesc_shift, batch_prdesc) in enumerate(generate_batch(dataset, 32)):
+        for batch, (batch_pr, batch_prdesc_shift, batch_prdesc) in enumerate(generate_batch(dataset, BATCH_SIZE)):
             # Train the batch
             loss, accuracy = train_step(batch_pr, batch_prdesc_shift, batch_prdesc, model, optimizer)
+
             if batch % 1 == 0:
                 losses.append(loss)
                 accuracies.append(accuracy)
                 print('Epoch {} Batch {} Loss {:.4f} Accuracy {:.4f}'.format(epoch + 1, batch, loss.item(), accuracy.item()))
+
+            if accuracy > max_accuracy:
+                max_accuracy = accuracy
+                torch.save(model.state_dict(), os.path.join('Model_Pytorch', 'model.pt'))
+                print("Model saved.")
         
 
         print('Time taken for 1 epoch {:.4f} sec\n'.format(time.time() - start))
@@ -128,10 +139,10 @@ if __name__ == '__main__':
     model = Model(VOCAB_SIZE, HIDDEN_DIM, EMBEDDING_DIM).to(device)
     optimizer = optim.Adam(model.parameters(), lr=0.001)
 
-    losses, accuracies = main_train(model, dataset, optimizer, 10)
+    losses, accuracies = main_train(model, dataset, optimizer, epochs=EPOCHS)
 
     # Save model
-    torch.save(model.state_dict(), os.path.join('Model_Pytorch', 'model.pt'))
+    # torch.save(model.state_dict(), os.path.join('Model_Pytorch', 'model.pt'))
 
     # # Save losses and accuracies
     # np.save(os.path.join('Model_Pytorch', 'losses.npy'), np.array(losses))

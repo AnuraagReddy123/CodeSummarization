@@ -165,7 +165,7 @@ def encode_word_to_index(dataset: dict, vocab: list):
 
 if __name__=='__main__':
 
-    with open('../Data/dataset_aug.json') as f:
+    with open('Data/dataset_aug.json') as f:
         dataset: dict = json.load(f)
 
     dataset = preprocess_text(dataset)
@@ -180,6 +180,6 @@ if __name__=='__main__':
 
     dataset = encode_word_to_index(dataset, vocab)
 
-    with open('../Data/dataset_preproc.json', 'w+') as f:
+    with open('Data/dataset_preproc.json', 'w+') as f:
         f.write(json.dumps(dataset))
 
