@@ -18,3 +18,7 @@ Data/
 .vscode/
 Train.out
 **/__pycache__/
+Model_Pytorch/accuracies.png
+Model_Pytorch/accuracies.txt
+Model_Pytorch/losses.png
+Model_Pytorch/losses.txt

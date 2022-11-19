@@ -13,26 +13,27 @@ import json
 import torch.nn as nn
 import torch.optim as optim
 import math
+import matplotlib.pyplot as plt
+
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(device)
 
-EPOCHS = 100
-BATCH_SIZE = 32
+EPOCHS = 2
+BATCH_SIZE = 5
 
-# def readfromjson(path):
-#     '''
-#     Read from json
+def plotter(values, file_name):
 
-#     Parameters:
-#         path: The path
+    if file_name == 'accuracies':
+        plt.ylim([0, 1])
+    else:
+        plt.ylim([0, 20])
 
-#     Returns:
-#         The data
-#     '''
-#     with open(path, 'r') as f:
-#         data = json.load(f)
-#     return data
+    plt.plot(values)
+    plt.savefig(f'Model_Pytorch/{file_name}.png')
+
+    open(f'Model_Pytorch/{file_name}.txt', 'w+').write(str(values))
+
 
 def generate_batch(dataset, batch_size):
     '''
@@ -124,8 +125,8 @@ def main_train(model: Model, dataset, optimizer, epochs):
             # Train the batch
             loss, accuracy = train_step(batch_pr, batch_prdesc_shift, batch_prdesc, model, optimizer)
 
-            losses.append(loss)
-            accuracies.append(accuracy)
+            losses.append(loss.item())
+            accuracies.append(accuracy.item())
             print('Epoch {} Batch {} Loss {:.4f} Accuracy {:.4f}'.format(epoch + 1, batch, loss.item(), accuracy.item()))
 
             if accuracy > max_accuracy:
@@ -147,6 +148,9 @@ if __name__ == '__main__':
     optimizer = optim.Adam(model.parameters(), lr=0.001)
 
     losses, accuracies = main_train(model, dataset, optimizer, epochs=EPOCHS)
+
+    plotter(losses, 'losses')
+    plotter(accuracies, 'accuracies')
 
     # Save model
     torch.save(model.state_dict(), os.path.join('Model_Pytorch', 'model_final.pt'))
