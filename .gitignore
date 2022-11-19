@@ -7,7 +7,8 @@ tree-sitter-codeviews/
 Model/__pycache__/
 Model_Pytorch/__pycache__/
 Model_Pytorch/Utils/__pycache__/
-Model_Pytorch/model.pt
+Model_Pytorch/*.pt
 Data/
 .vscode/
 Train.out
+__pycache__/

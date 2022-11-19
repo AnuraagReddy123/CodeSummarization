@@ -24,18 +24,20 @@ if __name__=='__main__':
     batch_pr, batch_prdesc_shift, batch_prdesc = next(generate_batch(dataset, 1))
 
     model = Model(Constants.VOCAB_SIZE, Constants.HIDDEN_DIM, Constants.EMBEDDING_DIM).to(device)
-    model.load_state_dict(torch.load('Model_Pytorch/model.pt'))
+    model.load_state_dict(torch.load('Model_Pytorch/model_final.pt'))
 
     batch_prdesc = model.predict(batch_pr, Constants.MAX_LEN)
 
     with open('vocab.txt', 'r') as f:
         vocab = eval(f.read())
 
+    print(len(vocab))
+
     for prdesc_tensor in batch_prdesc:
 
+        print(prdesc_tensor)
         text = tensor_to_text(prdesc_tensor, vocab)
         print(text)
-        print(prdesc_tensor)
 
 
 

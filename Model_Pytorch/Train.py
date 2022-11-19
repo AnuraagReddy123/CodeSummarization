@@ -1,6 +1,6 @@
 from Model import Model
 from Loss import loss_fn, accuracy_fn
-from Utils.Constants import *
+from Utils import Constants
 
 # import tensorflow as tf
 import torch
@@ -17,8 +17,8 @@ import math
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(device)
 
-EPOCHS = 30
-BATCH_SIZE = 32
+EPOCHS = 500
+BATCH_SIZE = 1
 
 # def readfromjson(path):
 #     '''
@@ -54,10 +54,11 @@ def generate_batch(dataset, batch_size):
         for j in range(min(batch_size, N-i)):
 
             key = keys[i+j]
-            pr_desc: list = dataset[key]['body']
+            pr_desc: list = list(dataset[key]['body'])
 
             batch_pr.append(dataset[key])
             # append start in the beginning
+            # prdesc_shift = [0]
             batch_prdesc_shift.append([0] + pr_desc)
             batch_prdesc.append(pr_desc)
 
@@ -83,9 +84,12 @@ def train_step(input_pr, target_prdesc_shift, target_prdesc, model: Model, optim
         optimizer: The optimizer
     '''
     logits = model(input_pr, target_prdesc_shift)
+    logits = logits[:, :-1]
+    # print(logits.shape)
     target_prdesc = torch.tensor(target_prdesc, dtype=torch.long, device=device)
     loss = loss_fn(logits, target_prdesc)
     accuracy = accuracy_fn(logits, target_prdesc)
+    exit(0)
 
     optimizer.zero_grad()
     loss.backward()
@@ -114,17 +118,20 @@ def main_train(model: Model, dataset, optimizer, epochs):
         start = time.time()
         # For every batch
         for batch, (batch_pr, batch_prdesc_shift, batch_prdesc) in enumerate(generate_batch(dataset, BATCH_SIZE)):
+
+            if batch > 0:
+                continue
+
             # Train the batch
             loss, accuracy = train_step(batch_pr, batch_prdesc_shift, batch_prdesc, model, optimizer)
 
-            if batch % 1 == 0:
-                losses.append(loss)
-                accuracies.append(accuracy)
-                print('Epoch {} Batch {} Loss {:.4f} Accuracy {:.4f}'.format(epoch + 1, batch, loss.item(), accuracy.item()))
+            losses.append(loss)
+            accuracies.append(accuracy)
+            print('Epoch {} Batch {} Loss {:.4f} Accuracy {:.4f}'.format(epoch + 1, batch, loss.item(), accuracy.item()))
 
             if accuracy > max_accuracy:
                 max_accuracy = accuracy
-                torch.save(model.state_dict(), os.path.join('Model_Pytorch', 'model.pt'))
+                torch.save(model.state_dict(), os.path.join('Model_Pytorch', 'model_best.pt'))
                 print("Model saved.")
         
 
@@ -136,16 +143,12 @@ if __name__ == '__main__':
     # Load dataset
     dataset = load_data(os.path.join('Data', 'dataset_preproc.json'))
 
-    model = Model(VOCAB_SIZE, HIDDEN_DIM, EMBEDDING_DIM).to(device)
+    model = Model(Constants.VOCAB_SIZE, Constants.HIDDEN_DIM, Constants.EMBEDDING_DIM).to(device)
     optimizer = optim.Adam(model.parameters(), lr=0.001)
 
     losses, accuracies = main_train(model, dataset, optimizer, epochs=EPOCHS)
 
     # Save model
-    # torch.save(model.state_dict(), os.path.join('Model_Pytorch', 'model.pt'))
-
-    # # Save losses and accuracies
-    # np.save(os.path.join('Model_Pytorch', 'losses.npy'), np.array(losses))
-    # np.save(os.path.join('Model_Pytorch', 'accuracies.npy'), np.array(accuracies))
+    torch.save(model.state_dict(), os.path.join('Model_Pytorch', 'model_final.pt'))
 
     print('Done')

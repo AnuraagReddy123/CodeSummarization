@@ -1,6 +1,7 @@
 from os import path
 import json
 from Utils.Structures import Node 
+from Utils import Constants
 import numpy as np
 import copy
 
@@ -8,7 +9,7 @@ import copy
 # max number of ASTs and Commits 
 N_ASTS = 10
 N_COMMITS = 10
-N_PRDESC = 20
+N_PRDESC = Constants.MAX_LEN
 
 Empty_commit =  {
     'cm': [1],
@@ -46,6 +47,7 @@ def adjust_commits(commits: dict):
 
 def adjust_body(body: list):
     
+    '''Fixes the size of body'''
     if len(body) >= N_PRDESC:
         body = body[:N_PRDESC-1] + [2]
     elif len(body) < N_PRDESC:
