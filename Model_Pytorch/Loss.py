@@ -42,9 +42,9 @@ def accuracy_fn (logits, target_prdesc):
     correct = correct * mask
     accuracy = correct.sum() / mask.sum()
 
-    print("Pred: ", pred)
-    print("Target :", target_prdesc)
-    print("Correct: ", correct.sum(), " Mask: ", mask.sum())
+    # print("Pred: ", pred)
+    # print("Target :", target_prdesc)
+    # print("Correct: ", correct.sum(), " Mask: ", mask.sum())
 
     return accuracy 
     

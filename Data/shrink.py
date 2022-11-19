@@ -8,7 +8,7 @@ with open('dataset_all.json', 'r') as f:
 dataset_sh = {}
 
 keys_all = list(dataset_all.keys())
-keys_sh = keys_all[:10]
+keys_sh = keys_all[:1000]
 
 for k in keys_sh:
     dataset_sh[k] = dataset_all[k]
