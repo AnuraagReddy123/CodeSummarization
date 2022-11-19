@@ -54,7 +54,7 @@ def clone_repo(username, repo_name):
             Clones the repo if it doesn't exist already
         '''
 
-        repo_path = path.join('repos', username, repo_name)
+        repo_path = path.join('Data_Preprocessing', 'repos', username, repo_name)
         if not path.isdir(repo_path):
             os.makedirs(repo_path)
             command = shlex.split(f'git clone https://github.com/{username}/{repo_name}.git {repo_path}')
@@ -149,8 +149,8 @@ if __name__=='__main__':
 
     st_g = time.time()
 
-    if not path.isdir('repos'):
-        os.makedirs('repos')
+    if not path.isdir('Data_Preprocessing', 'repos'):
+        os.makedirs('Data_Preprocessing', 'repos')
 
     with open(path.join('Data', 'dataset.json')) as f:
         dataset = json.load(f)
@@ -185,7 +185,7 @@ if __name__=='__main__':
         # ---------------- ASTs ---------------------------------------
         try:
             clone_repo(username, repo_name)
-            repo_path = path.join('repos', username, repo_name)
+            repo_path = path.join('Data_Preprocessing', 'repos', username, repo_name)
 
             for commit in pull_req.get_commits():
 

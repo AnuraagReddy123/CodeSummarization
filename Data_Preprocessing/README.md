@@ -1,19 +1,11 @@
 
 
-1. Install the dependencies:
+1. Augument the dataset with extra artifacts:
 ```
-npm i
-```
-
-2. Augument the dataset:
-```
-node main.js
+python augment.py
 ```
 
-* This will read the ```Data/dataset.json``` file and augument the dataset witl **issue titles** and **ASTs** of the modified files. And, finally saves the augumented dataset in ```Data/dataset_aug.json``` file.
-
-
-3. Preprocess the dataset:
+2. Preprocess the dataset:
 ```
 python preprocess.py
 ```
