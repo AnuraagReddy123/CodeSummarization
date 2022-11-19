@@ -3,7 +3,13 @@ Data_Preprocessing/repos/
 Data_Preprocessing/temp/
 Data_Preprocessing/vocab.txt
 Data_Preprocessing/.env
-tree-sitter-codeviews/
+tree-sitter-codeviews/vendor/
+tree-sitter-codeviews/__pycache__/
+tree-sitter-codeviews/build/
+tree-sitter-codeviews/Reference_Code/v1-multi-codeview/vendor
+tree-sitter-codeviews/Reference_Code/v1-multi-codeview/build
+tree-sitter-codeviews/experiments/data/
+tree-sitter-codeviews/.DS_Store
 Model/__pycache__/
 Model_Pytorch/__pycache__/
 Model_Pytorch/Utils/__pycache__/
@@ -11,4 +17,4 @@ Model_Pytorch/*.pt
 Data/
 .vscode/
 Train.out
-__pycache__/
+**/__pycache__/

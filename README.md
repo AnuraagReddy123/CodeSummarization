@@ -24,5 +24,11 @@ mv pr_dump.json dataset_all.json
 python shrink.py
 ```
 
+5. Add a ```.env``` file in ```Data_Preprocessing/``` folder with the Github PAT token
+
+```
+TOKEN=<Your Github PAT>
+```
+
 5. Run the steps in Data_Preprocessing/README.md
 6. Train the model
