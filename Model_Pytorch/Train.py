@@ -19,8 +19,8 @@ import matplotlib.pyplot as plt
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(device)
 
-EPOCHS = 2
-BATCH_SIZE = 5
+EPOCHS = 1000
+BATCH_SIZE = 32
 
 def plotter(values, file_name):
 

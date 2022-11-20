@@ -25,7 +25,7 @@ if __name__=='__main__':
 
     model = Model(Constants.VOCAB_SIZE, Constants.HIDDEN_DIM, Constants.EMBEDDING_DIM).to(device)
     model = nn.DataParallel(model)
-    model.load_state_dict(torch.load('Model_Pytorch/model_final.pt'))
+    model.load_state_dict(torch.load('Model_Pytorch/model_best.pt'))
 
     pred_batch_prdesc = model.module.predict(batch_pr, Constants.MAX_LEN)
 
