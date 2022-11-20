@@ -8,16 +8,21 @@ print(device)
 
 class Decoder(nn.Module):
 
-    def __init__ (self, vocab_size, hidden_dim, embed_dim):
+    def __init__ (self, vocab_size, hidden_dim, embed_dim, num_layers):
         super(Decoder, self).__init__()
 
         self.hidden_dim = hidden_dim
         self.vocab_size = vocab_size
         self.embed_dim = embed_dim
+        self.num_layers = num_layers
 
         self.emb = nn.Embedding(vocab_size, embed_dim)
-        self.lstm = nn.LSTM(embed_dim, hidden_dim, 1, batch_first=True)
-        self.lin = nn.Linear(hidden_dim, vocab_size)
+        self.lstm = nn.LSTM(embed_dim, hidden_dim, num_layers=num_layers, batch_first=True,  dropout=0.1)
+        self.linear = nn.Sequential(
+            nn.Linear(hidden_dim, 2048),
+            nn.ReLU(),
+            nn.Linear(2048, vocab_size)
+        )
 
     def forward (self, batch_prdesc, h_enc, c_enc):
         '''
@@ -26,12 +31,12 @@ class Decoder(nn.Module):
         # Convert to tensor
         batch_prdesc = torch.tensor(batch_prdesc).to(device) # (batch_size, max_len)
         emb_prdesc = self.emb(batch_prdesc) # (batch_size, max_len, embed_dim)
-        out, (h, c) = self.lstm(emb_prdesc, (h_enc, c_enc)) # (batch_size, max_len, hidden_dim), (1, batch_size, hidden_dim), (1, batch_size, hidden_dim)
+        out, (h, c) = self.lstm(emb_prdesc, (h_enc, c_enc)) # (batch_size, max_len, hidden_dim), (num_layers, batch_size, hidden_dim), (num_layers, batch_size, hidden_dim)
 
-        logits = self.lin(out) # (batch_size, max_len, vocab_size)
+        logits = self.linear(out) # (batch_size, max_len, vocab_size)
 
-        # softmax
-        logits = torch.softmax(logits, dim=-1)
+        # # softmax
+        # probs = torch.softmax(logits, dim=-1)
 
         return logits, h, c
 

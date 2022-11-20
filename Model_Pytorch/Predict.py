@@ -23,7 +23,7 @@ if __name__=='__main__':
 
     batch_pr, batch_prdesc_shift, batch_prdesc = next(generate_batch(dataset, 1))
 
-    model = Model(Constants.VOCAB_SIZE, Constants.HIDDEN_DIM, Constants.EMBEDDING_DIM).to(device)
+    model = Model(Constants.VOCAB_SIZE, Constants.HIDDEN_DIM, Constants.EMBEDDING_DIM, num_layers=Constants.NUM_LAYERS).to(device)
     model = nn.DataParallel(model)
     model.load_state_dict(torch.load('Model_Pytorch/model_best.pt'))
 

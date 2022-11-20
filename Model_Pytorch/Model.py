@@ -4,14 +4,15 @@ from Encoder import Encoder
 from Decoder import Decoder
 
 class Model(nn.Module):
-    def __init__ (self, vocab_size, hidden_dim, embed_dim):
+    def __init__ (self, vocab_size, hidden_dim, embed_dim, num_layers):
         super().__init__()
         self.hidden_dim = hidden_dim
         self.emb_dim = embed_dim
         self.vocab_size = vocab_size
+        self.num_layers = num_layers
 
-        self.encoder = Encoder(vocab_size, hidden_dim, embed_dim)
-        self.decoder = Decoder(vocab_size, hidden_dim, embed_dim)
+        self.encoder = Encoder(vocab_size, hidden_dim, embed_dim, num_layers=num_layers)
+        self.decoder = Decoder(vocab_size, hidden_dim, embed_dim, num_layers=num_layers)
 
     def forward (self, batch_pr, batch_prdesc_shift):
         '''

@@ -19,8 +19,6 @@ import matplotlib.pyplot as plt
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(device)
 
-EPOCHS = 1000
-BATCH_SIZE = 32
 
 def plotter(values, file_name):
 
@@ -117,10 +115,10 @@ def main_train(model: Model, dataset, optimizer, epochs):
         # Get start time
         start = time.time()
         # For every batch
-        for batch, (batch_pr, batch_prdesc_shift, batch_prdesc) in enumerate(generate_batch(dataset, BATCH_SIZE)):
+        for batch, (batch_pr, batch_prdesc_shift, batch_prdesc) in enumerate(generate_batch(dataset, Constants.BATCH_SIZE)):
 
-            # if batch > 0:
-                # continue
+            if batch > 0:
+                continue
 
             # Train the batch
             loss, accuracy = train_step(batch_pr, batch_prdesc_shift, batch_prdesc, model, optimizer)
@@ -143,11 +141,11 @@ if __name__ == '__main__':
     # Load dataset
     dataset = load_data(os.path.join('Data', 'dataset_preproc.json'))
 
-    model = Model(Constants.VOCAB_SIZE, Constants.HIDDEN_DIM, Constants.EMBEDDING_DIM).to(device)
+    model = Model(Constants.VOCAB_SIZE, Constants.HIDDEN_DIM, Constants.EMBEDDING_DIM, num_layers=Constants.NUM_LAYERS).to(device)
     model = nn.DataParallel(model)
     optimizer = optim.Adam(model.parameters(), lr=0.001)
 
-    losses, accuracies = main_train(model, dataset, optimizer, epochs=EPOCHS)
+    losses, accuracies = main_train(model, dataset, optimizer, epochs=Constants.EPOCHS)
 
     plotter(losses, 'losses')
     plotter(accuracies, 'accuracies')

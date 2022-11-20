@@ -1,47 +1,39 @@
 import torch 
 import torch.nn as nn
+from Utils import Constants
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(device)
 
 class Encoder(nn.Module):
 
-    def __init__(self, vocab_size, hidden_dim, embed_dim):
+    def __init__(self, vocab_size, hidden_dim, embed_dim, num_layers):
         super(Encoder, self).__init__()
 
         self.hidden_dim = hidden_dim
         self.emb_dim = embed_dim
         self.vocab_size = vocab_size
+        self.num_layers = num_layers
 
         self.emb_commit_msgs = nn.Embedding(vocab_size, embed_dim)
         self.emb_src_comments = nn.Embedding(vocab_size, embed_dim)
         self.emb_issue_titles = nn.Embedding(vocab_size, embed_dim)
 
-        self.enc_commit_msgs = nn.LSTM(embed_dim, hidden_dim, 1, batch_first=True)
-        self.enc_src_comments = nn.LSTM(embed_dim, hidden_dim, 1, batch_first=True)
-        self.enc_issue_titles = nn.LSTM(embed_dim, hidden_dim, 1, batch_first=True)
+        self.enc_commit_msgs = nn.LSTM(embed_dim, hidden_dim,  num_layers=num_layers, batch_first=True, dropout=0.1)
+        self.enc_src_comments = nn.LSTM(embed_dim, hidden_dim,  num_layers=num_layers, batch_first=True, dropout=0.1)
+        self.enc_issue_titles = nn.LSTM(embed_dim, hidden_dim,  num_layers=num_layers, batch_first=True, dropout=0.1)
 
         self.lin_mergeh = nn.Linear(2*hidden_dim, 1)
         self.lin_mergec = nn.Linear(2*hidden_dim, 1)
 
-        self.lin_finmergeh = nn.Linear(10+hidden_dim, hidden_dim)
-        self.lin_finmergec = nn.Linear(10+hidden_dim, hidden_dim)
+        self.lin_finmergeh = nn.Linear(Constants.MAX_COMMITS+hidden_dim, hidden_dim)
+        self.lin_finmergec = nn.Linear(Constants.MAX_COMMITS+hidden_dim, hidden_dim)
 
     def initialize_hidden_state(self):
-        return torch.zeros((1, 1, self.hidden_dim)).to(device), torch.zeros((1, 1, self.hidden_dim)).to(device)
-        # return torch.zeros((1, 2, 10, self.hidden_dim)), torch.zeros((1, 2, 10, self.hidden_dim))
+        return torch.zeros((self.num_layers, 1, self.hidden_dim)).to(device), torch.zeros((self.num_layers, 1, self.hidden_dim)).to(device)
 
     def forward(self, batch_pr):
 
-        # emb = self.emb_src_comments(batch_pr)
-        # print(emb.shape)
-        # h0, c0 = self.initialize_hidden_state()
-        # print(h0.shape)
-        # enc_src_comments, (h_commit_msgs, c_commit_msgs) = self.enc_src_comments(emb, (h0, c0))
-
-        # return enc_src_comments, h_commit_msgs, c_commit_msgs
-
-        # exit(0)
         batch_h = []
         batch_c = []
 
@@ -50,8 +42,8 @@ class Encoder(nn.Module):
             batch_h.append(h)
             batch_c.append(c)
         
-        batch_h = torch.cat(batch_h, dim=1) # (1, batch_size, hidden_dim)
-        batch_c = torch.cat(batch_c, dim=1) # (1, batch_size, hidden_dim)
+        batch_h = torch.cat(batch_h, dim=1) # (num_layers, batch_size, hidden_dim)
+        batch_c = torch.cat(batch_c, dim=1) # (num_layers, batch_size, hidden_dim)
 
         return batch_h, batch_c
 
@@ -80,29 +72,29 @@ class Encoder(nn.Module):
 
             # Encoding
             h0, c0 = self.initialize_hidden_state()
-            enc_src_comments, (h_src_comments, c_src_comments) = self.enc_src_comments(emb_src_comments, (h0, c0)) # (1, seq_len, hidden_dim), (1, 1, hidden_dim), (1, 1, hidden_dim)
+            enc_src_comments, (h_src_comments, c_src_comments) = self.enc_src_comments(emb_src_comments, (h0, c0)) # (batch_size=1, seq_len, hidden_dim), (num_layers, 1, hidden_dim), (num_layers, 1, hidden_dim)
 
             h0, c0 = self.initialize_hidden_state()
-            enc_commit_msgs, (h_commit_msgs, c_commit_msgs) = self.enc_commit_msgs(emb_commit_msgs, (h0, c0)) # (1, seq_len, hidden_dim), (1, 1, hidden_dim), (1, 1, hidden_dim)
+            enc_commit_msgs, (h_commit_msgs, c_commit_msgs) = self.enc_commit_msgs(emb_commit_msgs, (h0, c0)) # (1, seq_len, hidden_dim), (num_layers, 1, hidden_dim), (num_layers, 1, hidden_dim)
 
             # Concatenate
-            h_commit = torch.cat((h_src_comments, h_commit_msgs), dim=2) # (1, 1, 2*hidden_dim)
-            c_commit = torch.cat((c_src_comments, c_commit_msgs), dim=2) # (1, 1, 2*hidden_dim)
+            h_commit = torch.cat((h_src_comments, h_commit_msgs), dim=2) # (num_layers, batch_size=1, 2*hidden_dim)
+            c_commit = torch.cat((c_src_comments, c_commit_msgs), dim=2) # (num_layers, batch_size=1, 2*hidden_dim)
 
             h_commits.append(h_commit)
             c_commits.append(c_commit)
         
         # Make tensor
-        h_commits = torch.cat(h_commits, dim=1) # (1, num_commits, 2*hidden_dim)
-        c_commits = torch.cat(c_commits, dim=1) # (1, num_commits, 2*hidden_dim)
+        h_commits = torch.cat(h_commits, dim=1) # (num_layers, num_commits, 2*hidden_dim)
+        c_commits = torch.cat(c_commits, dim=1) # (num_layers, num_commits, 2*hidden_dim)
 
-        # Merge
-        h_commits = self.lin_mergeh(h_commits) # (1, num_commits, 1)
-        c_commits = self.lin_mergec(c_commits) # (1, num_commits, 1)
+        # Merge all commits
+        h_commits = self.lin_mergeh(h_commits) # (num_layers, num_commits, 1)
+        c_commits = self.lin_mergec(c_commits) # (num_layers, num_commits, 1)
 
         # Transpose
-        h_commits = h_commits.transpose(1, 2) # (1, 1, num_commits)
-        c_commits = c_commits.transpose(1, 2) # (1, 1, num_commits)
+        h_commits = h_commits.transpose(1, 2) # (num_layers, 1, num_commits)
+        c_commits = c_commits.transpose(1, 2) # (num_layers, 1, num_commits)
 
 
         # Encode the issue
@@ -112,15 +104,15 @@ class Encoder(nn.Module):
 
         emb_issue_titles = self.emb_issue_titles(inp_issue) # (1, seq_len, emb_dim)
         h0, c0 = self.initialize_hidden_state()
-        enc_issue_titles, (h_issue_titles, c_issue_titles) = self.enc_issue_titles(emb_issue_titles, (h0, c0)) # (1, seq_len, hidden_dim), (1, 1, hidden_dim), (1, 1, hidden_dim)
+        enc_issue_titles, (h_issue_titles, c_issue_titles) = self.enc_issue_titles(emb_issue_titles, (h0, c0)) # (1, seq_len, hidden_dim), (num_layers, 1, hidden_dim), (num_layers, 1, hidden_dim)
 
         # Concatenate
-        h = torch.cat((h_commits, h_issue_titles), dim=2) # (1, 1, num_commits+hidden_dim)
-        c = torch.cat((c_commits, c_issue_titles), dim=2) # (1, 1, num_commits+hidden_dim)
+        h = torch.cat((h_commits, h_issue_titles), dim=2) # (num_layers, 1, num_commits+hidden_dim)
+        c = torch.cat((c_commits, c_issue_titles), dim=2) # (num_layers, 1, num_commits+hidden_dim)
 
         # Merge
-        h = self.lin_finmergeh(h) # (1, 1, hidden_dim)
-        c = self.lin_finmergec(c) # (1, 1, hidden_dim)
+        h = self.lin_finmergeh(h) # (num_layers, 1, hidden_dim)
+        c = self.lin_finmergec(c) # (num_layers, 1, hidden_dim)
 
         return h, c
 
