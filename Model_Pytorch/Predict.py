@@ -21,7 +21,7 @@ if __name__=='__main__':
 
     dataset = load_data(os.path.join('Data', 'dataset_preproc.json'))
 
-    batch_pr, batch_prdesc_shift, batch_prdesc = next(generate_batch(dataset, 1))
+    batch_pr, batch_prdesc_shift, batch_prdesc = next(generate_batch(dataset, 5))
 
     model = Model(Constants.VOCAB_SIZE, Constants.HIDDEN_DIM, Constants.EMBEDDING_DIM).to(device)
     model = nn.DataParallel(model)
@@ -34,14 +34,13 @@ if __name__=='__main__':
 
     print(len(vocab))
 
-    for prdesc_tensor in pred_batch_prdesc:
+    for i in range(len(batch_pr)):
 
-        print(prdesc_tensor)
-        text = tensor_to_text(prdesc_tensor, vocab)
-        print(text)
-
-    print()
-    print(tensor_to_text(batch_prdesc[0], vocab))
-
+        print("Ground Truth:")
+        print(tensor_to_text(batch_prdesc[i], vocab))
+        print()
+        print("Prediction:")
+        print(tensor_to_text(pred_batch_prdesc[i], vocab))
+        print('\n--------------------------------\n')
 
 

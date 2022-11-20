@@ -17,4 +17,5 @@ Model_Pytorch/*.pt
 Data/
 .vscode/
 Train.out
+Predict.out
 **/__pycache__/
