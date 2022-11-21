@@ -117,8 +117,8 @@ def main_train(model: Model, dataset, optimizer, epochs):
         # For every batch
         for batch, (batch_pr, batch_prdesc_shift, batch_prdesc) in enumerate(generate_batch(dataset, Constants.BATCH_SIZE)):
 
-            if batch > 0:
-                continue
+            #if batch > 0:
+                #continue
 
             # Train the batch
             loss, accuracy = train_step(batch_pr, batch_prdesc_shift, batch_prdesc, model, optimizer)
