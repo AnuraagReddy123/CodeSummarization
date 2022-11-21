@@ -1,6 +1,9 @@
 import torch 
 import torch.nn as nn
 from Utils import Constants
+import treelstm
+
+MAX_ASTS = 1
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(device)
@@ -23,8 +26,15 @@ class Encoder(nn.Module):
         self.enc_src_comments = nn.LSTM(embed_dim, hidden_dim,  num_layers=num_layers, batch_first=True, dropout=0.1)
         self.enc_issue_titles = nn.LSTM(embed_dim, hidden_dim,  num_layers=num_layers, batch_first=True, dropout=0.1)
 
-        self.lin_mergeh = nn.Linear(2*hidden_dim, 1)
-        self.lin_mergec = nn.Linear(2*hidden_dim, 1)
+        self.tree_lstm = treelstm.TreeLSTM(2, hidden_dim)
+        self.lin_astdiffh = nn.Linear(2*hidden_dim, hidden_dim)
+        self.lin_astdiffc = nn.Linear(2*hidden_dim, hidden_dim)
+
+        self.lin_astmergeh = nn.Linear(hidden_dim, 1)
+        self.lin_astmergec = nn.Linear(hidden_dim, 1)
+
+        self.lin_mergeh = nn.Linear(2*hidden_dim+MAX_ASTS, 1)
+        self.lin_mergec = nn.Linear(2*hidden_dim+MAX_ASTS, 1)
 
         self.lin_finmergeh = nn.Linear(Constants.MAX_COMMITS+hidden_dim, hidden_dim)
         self.lin_finmergec = nn.Linear(Constants.MAX_COMMITS+hidden_dim, hidden_dim)
@@ -77,16 +87,40 @@ class Encoder(nn.Module):
             h0, c0 = self.initialize_hidden_state()
             enc_commit_msgs, (h_commit_msgs, c_commit_msgs) = self.enc_commit_msgs(emb_commit_msgs, (h0, c0)) # (1, seq_len, hidden_dim), (num_layers, 1, hidden_dim), (num_layers, 1, hidden_dim)
 
+            old_asts = commit['old_asts']
+            cur_asts = commit['cur_asts']
+
+            h_asts = []
+            c_asts = []
+            for old, cur in zip(old_asts, cur_asts):
+                h_old, c_old = self.tree_lstm(old['features'], old['node_order'], old['adjacency_list'], old['edge_order'])
+                h_cur, c_cur = self.tree_lstm(cur['features'], cur['node_order'], cur['adjacency_list'], cur['edge_order'])
+                h_old, c_old = h_old[0], c_old[0]
+                h_cur, c_cur = h_cur[0], c_cur[0]
+                h_ast = self.lin_astdiffh(torch.cat((h_old, h_cur)).unsqueeze(0))
+                c_ast = self.lin_astdiffc(torch.cat((c_old, c_cur)).unsqueeze(0))
+                h_asts.append(h_ast)
+                c_asts.append(c_ast)
+            
+            h_asts = torch.stack(h_asts, dim=0) # (num_of_trees, hidden_dim)
+            c_asts = torch.stack(c_asts, dim=0) # (num_of_trees, hidden_dim)
+
+            h_asts = torch.t(self.lin_astmergeh(h_asts)) # (1, num_of_trees)
+            c_asts = torch.t(self.lin_astmergec(c_asts)) # (1, num_of_trees)
+
+            h_asts = torch.stack([h_asts]*self.num_layers) # (num_layers, 1, num_of_trees)
+            c_asts = torch.stack([c_asts]*self.num_layers) # (num_layers, 1, num_of_trees)
+
             # Concatenate
-            h_commit = torch.cat((h_src_comments, h_commit_msgs), dim=2) # (num_layers, batch_size=1, 2*hidden_dim)
-            c_commit = torch.cat((c_src_comments, c_commit_msgs), dim=2) # (num_layers, batch_size=1, 2*hidden_dim)
+            h_commit = torch.cat((h_src_comments, h_commit_msgs, h_asts), dim=2) # (num_layers, batch_size=1, 2*hidden_dim+num_of_trees)
+            c_commit = torch.cat((c_src_comments, c_commit_msgs, h_asts), dim=2) # (num_layers, batch_size=1, 2*hidden_dim+num_of_trees)
 
             h_commits.append(h_commit)
             c_commits.append(c_commit)
         
         # Make tensor
-        h_commits = torch.cat(h_commits, dim=1) # (num_layers, num_commits, 2*hidden_dim)
-        c_commits = torch.cat(c_commits, dim=1) # (num_layers, num_commits, 2*hidden_dim)
+        h_commits = torch.cat(h_commits, dim=1) # (num_layers, num_commits, 2*hidden_dim+num_of_trees)
+        c_commits = torch.cat(c_commits, dim=1) # (num_layers, num_commits, 2*hidden_dim+num_of_trees)
 
         # Merge all commits
         h_commits = self.lin_mergeh(h_commits) # (num_layers, num_commits, 1)

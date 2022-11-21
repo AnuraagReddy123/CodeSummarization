@@ -4,10 +4,11 @@ from Utils.Structures import Node
 from Utils import Constants
 import numpy as np
 import copy
+import treelstm
 
 
 # max number of ASTs and Commits 
-N_ASTS = 10
+N_ASTS = 1
 N_COMMITS = 10
 N_PRDESC = Constants.MAX_LEN
 
@@ -18,13 +19,17 @@ Empty_commit =  {
     'cur_asts': [{}]*N_ASTS
 }
 
+default_ast = {
+    'nodes': [[-1, -1], [-1, -1]],
+    'edges': [[0,1]]
+}
 
 def adjust_asts(asts: list):
 
     n = len(asts)
 
     if n < N_ASTS:
-        asts.extend([{}]*(N_ASTS - n))
+        asts.extend([default_ast]*(N_ASTS - n))
     elif n > N_ASTS:
         asts = asts[:N_ASTS]
 
@@ -78,6 +83,17 @@ def build_tree(adj):
 
     return root
 
+def convert_tree_to_vectors(tree):
+
+    node_order, edge_order = treelstm.calculate_evaluation_orders(tree['edges'], len(tree['nodes']))
+
+    return {
+        'features': tree['nodes'],
+        'adjacency_list': tree['edges'],
+        'node_order': node_order,
+        'edge_order': edge_order
+    }
+
 
 
 '''
@@ -103,15 +119,15 @@ def load_data(file_path):
             commits[commit_sha]['cm'] = np.array(commits[commit_sha]['cm'] if len(commits[commit_sha]['cm']) > 0 else [1])
             commits[commit_sha]['comments'] = np.array(commits[commit_sha]['comments'] if len(commits[commit_sha]['comments']) > 0 else [1])
 
-            continue
-        
             old_asts = dataset[key]['commits'][commit_sha]['old_asts']
             old_asts = adjust_asts(old_asts)
-            dataset[key]['commits'][commit_sha]['old_asts'] = [build_tree(x) for x in old_asts]
+            # dataset[key]['commits'][commit_sha]['old_asts'] = [build_tree(x) for x in old_asts]
+            dataset[key]['commits'][commit_sha]['old_asts'] = [convert_tree_to_vectors(x) for x in old_asts]
 
             cur_asts = dataset[key]['commits'][commit_sha]['cur_asts']
             cur_asts = adjust_asts(cur_asts)
-            dataset[key]['commits'][commit_sha]['cur_asts'] = [build_tree(x) for x in cur_asts]
+            # dataset[key]['commits'][commit_sha]['cur_asts'] = [build_tree(x) for x in cur_asts]
+            dataset[key]['commits'][commit_sha]['cur_asts'] = [convert_tree_to_vectors(x) for x in cur_asts]
         
         dataset[key]['commits'] = commits
 

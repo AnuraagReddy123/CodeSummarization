@@ -107,20 +107,28 @@ def compute_vocab(dataset: dict):
             for x in dataset[key]['commits'][commit_sha]['comments'].split():
                 _add(x)
 
-            continue
-
             old_asts = dataset[key]['commits'][commit_sha]['old_asts']
             cur_asts = dataset[key]['commits'][commit_sha]['cur_asts']
 
+            # for old_ast in old_asts:
+            #     for node_id in old_ast:
+            #         _add(old_ast[node_id]['label'])
+            #         # vocab_set.add(old_ast[node_id]['label'])
+
+            # for cur_ast in cur_asts:
+            #     for node_id in cur_ast:
+            #         _add(cur_ast[node_id]['label'])
+            #         # vocab_set.add(cur_ast[node_id]['label'])
+
             for old_ast in old_asts:
-                for node_id in old_ast:
-                    _add(old_ast[node_id]['label'])
-                    # vocab_set.add(old_ast[node_id]['label'])
+                for node in old_ast['nodes']:
+                    _add(node[0])
+                    _add(node[1])
 
             for cur_ast in cur_asts:
-                for node_id in cur_ast:
-                    _add(cur_ast[node_id]['label'])
-                    # vocab_set.add(cur_ast[node_id]['label'])
+                for node in cur_ast['nodes']:
+                    _add(node[0])
+                    _add(node[1])
 
     # <START> -> 0
     # <BLANK> -> 1
@@ -160,18 +168,27 @@ def encode_word_to_index(dataset: dict, vocab: list):
             comments = dataset[key]['commits'][commit_sha]['comments']
             dataset[key]['commits'][commit_sha]['comments'] = [_index(x) for x in comments.split()]
 
-            continue
 
             old_asts = dataset[key]['commits'][commit_sha]['old_asts']
             cur_asts = dataset[key]['commits'][commit_sha]['cur_asts']
 
+            # for old_ast in old_asts:
+            #     for node_id in old_ast:
+            #         old_ast[node_id]['label'] = _index(old_ast[node_id]['label'])
+
+            # for cur_ast in cur_asts:
+            #     for node_id in cur_ast:
+            #         cur_ast[node_id]['label'] = _index(cur_ast[node_id]['label'])
+
             for old_ast in old_asts:
-                for node_id in old_ast:
-                    old_ast[node_id]['label'] = _index(old_ast[node_id]['label'])
+                for node in old_ast['nodes']:
+                    node[0], node[1] = _index(node[0]), _index(node[1])
 
             for cur_ast in cur_asts:
-                for node_id in cur_ast:
-                    cur_ast[node_id]['label'] = _index(cur_ast[node_id]['label'])
+                for node in cur_ast['nodes']:
+                    node[0], node[1] = _index(node[0]), _index(node[1])
+
+
 
     return dataset
 

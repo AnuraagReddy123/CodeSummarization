@@ -54,7 +54,7 @@ def clone_repo(username, repo_name):
             Clones the repo if it doesn't exist already
         '''
 
-        repo_path = path.join('Data_Preprocessing', 'repos', username, repo_name)
+        repo_path = path.join('../Data_Preprocessing', 'repos', username, repo_name)
         if not path.isdir(repo_path):
             os.makedirs(repo_path)
             command = shlex.split(f'git clone https://github.com/{username}/{repo_name}.git {repo_path}')
@@ -125,6 +125,24 @@ def get_custom_ast(ast):
 
     return custom_ast
     
+def gen_trees(ast):
+    # Load the data
+    custom_ast = {}
+    custom_ast['nodes'] = []
+
+    for node in ast['nodes']:
+        custom_ast['nodes'].append([node['node_type'], node['label']])
+    
+    num = ast['nodes'][0]['id']
+    
+    custom_ast['edges'] = []
+
+    for edge in ast['links']:
+        src, tar = edge['source'] - num, edge['target'] - num
+        custom_ast['edges'].append([src, tar])
+
+    return custom_ast
+
 
 def get_ast(text):
 
@@ -139,7 +157,7 @@ def get_ast(text):
     with open(OUTPUT_PATH, 'r') as f:
         ast = json.load(f)
 
-    ast = get_custom_ast(ast)
+    ast = gen_trees(ast)
 
     return ast
 
@@ -149,10 +167,10 @@ if __name__=='__main__':
 
     st_g = time.time()
 
-    if not path.isdir('Data_Preprocessing', 'repos'):
-        os.makedirs('Data_Preprocessing', 'repos')
+    if not path.isdir(path.join('../Data_Preprocessing', 'repos')):
+        os.makedirs('../Data_Preprocessing', 'repos')
 
-    with open(path.join('Data', 'dataset.json')) as f:
+    with open(path.join('../Data', 'dataset.json')) as f:
         dataset = json.load(f)
     
     user, repo = [None]*2
@@ -179,13 +197,10 @@ if __name__=='__main__':
 
         print("issue title check.")
 
-        continue
-        # ASTs are not needed now
-
         # ---------------- ASTs ---------------------------------------
         try:
             clone_repo(username, repo_name)
-            repo_path = path.join('Data_Preprocessing', 'repos', username, repo_name)
+            repo_path = path.join('../Data_Preprocessing', 'repos', username, repo_name)
 
             for commit in pull_req.get_commits():
 
@@ -211,11 +226,10 @@ if __name__=='__main__':
 
                     dataset[d_key]['commits'][f"'{commit.sha}'"]['cur_asts'].append(cur_ast)
                     dataset[d_key]['commits'][f"'{commit.sha}'"]['old_asts'].append(old_ast)
-
         except:
             continue
         
-    with open(path.join('Data', 'dataset_aug.json'), 'w+') as f:
+    with open(path.join('../Data', 'dataset_aug1.json'), 'w+') as f:
         json.dump(dataset, f)
     
     ed_g = time.time()
