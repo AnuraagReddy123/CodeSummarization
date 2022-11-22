@@ -114,7 +114,7 @@ class Encoder(nn.Module):
 
             # Concatenate
             h_commit = torch.cat((h_src_comments, h_commit_msgs, h_asts), dim=2) # (num_layers, batch_size=1, 2*hidden_dim+num_of_trees)
-            c_commit = torch.cat((c_src_comments, c_commit_msgs, h_asts), dim=2) # (num_layers, batch_size=1, 2*hidden_dim+num_of_trees)
+            c_commit = torch.cat((c_src_comments, c_commit_msgs, c_asts), dim=2) # (num_layers, batch_size=1, 2*hidden_dim+num_of_trees)
 
             h_commits.append(h_commit)
             c_commits.append(c_commit)

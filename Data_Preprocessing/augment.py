@@ -54,7 +54,7 @@ def clone_repo(username, repo_name):
             Clones the repo if it doesn't exist already
         '''
 
-        repo_path = path.join('../Data_Preprocessing', 'repos', username, repo_name)
+        repo_path = path.join('Data_Preprocessing', 'repos', username, repo_name)
         if not path.isdir(repo_path):
             os.makedirs(repo_path)
             command = shlex.split(f'git clone https://github.com/{username}/{repo_name}.git {repo_path}')
@@ -167,10 +167,10 @@ if __name__=='__main__':
 
     st_g = time.time()
 
-    if not path.isdir(path.join('../Data_Preprocessing', 'repos')):
-        os.makedirs('../Data_Preprocessing', 'repos')
+    if not path.isdir(path.join('Data_Preprocessing', 'repos')):
+        os.makedirs(path.join('Data_Preprocessing', 'repos'))
 
-    with open(path.join('../Data', 'dataset.json')) as f:
+    with open(path.join('Data', 'dataset.json')) as f:
         dataset = json.load(f)
     
     user, repo = [None]*2
@@ -200,7 +200,7 @@ if __name__=='__main__':
         # ---------------- ASTs ---------------------------------------
         try:
             clone_repo(username, repo_name)
-            repo_path = path.join('../Data_Preprocessing', 'repos', username, repo_name)
+            repo_path = path.join('Data_Preprocessing', 'repos', username, repo_name)
 
             for commit in pull_req.get_commits():
 
@@ -221,6 +221,12 @@ if __name__=='__main__':
                     cur_text = get_cur_version(repo_path, file.sha)
                     old_text = get_prev_version(cur_text, file.patch)
 
+                    print(cur_text)
+                    print('\n\n------------------------\n\n')
+                    print(old_text)
+
+                    exit(0)
+
                     cur_ast = get_ast(cur_text)
                     old_ast = get_ast(old_text)
 
@@ -229,7 +235,7 @@ if __name__=='__main__':
         except:
             continue
         
-    with open(path.join('../Data', 'dataset_aug1.json'), 'w+') as f:
+    with open(path.join('Data', 'dataset_aug.json'), 'w+') as f:
         json.dump(dataset, f)
     
     ed_g = time.time()
