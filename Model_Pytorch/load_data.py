@@ -5,6 +5,7 @@ from Utils import Constants
 import numpy as np
 import copy
 import treelstm
+import torch
 
 
 # max number of ASTs and Commits 
@@ -12,17 +13,20 @@ N_ASTS = 1
 N_COMMITS = 10
 N_PRDESC = Constants.MAX_LEN
 
-Empty_commit =  {
-    'cm': [1],
-    'comments': [1],
-    'old_asts': [{}]*N_ASTS,
-    'cur_asts': [{}]*N_ASTS
-}
-
 default_ast = {
     'nodes': [[-1, -1], [-1, -1]],
     'edges': [[0,1]]
 }
+
+default_commit =  {
+    'cm': [1],
+    'comments': [1],
+    'old_asts': [default_ast]*N_ASTS,
+    'cur_asts': [default_ast]*N_ASTS
+}
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
 
 def adjust_asts(asts: list):
 
@@ -41,7 +45,7 @@ def adjust_commits(commits: dict):
 
     if n < N_COMMITS:
         for i in range(1, N_COMMITS-n+1):
-            commits[f'key{i}'] = copy.deepcopy(Empty_commit)
+            commits[f'key{i}'] = copy.deepcopy(default_commit)
     elif n > N_COMMITS:
         keys = list(commits.keys())
         keys = keys[N_COMMITS:]
@@ -83,15 +87,15 @@ def build_tree(adj):
 
     return root
 
-def convert_tree_to_vectors(tree):
+def convert_tree_to_tensors(tree):
 
     node_order, edge_order = treelstm.calculate_evaluation_orders(tree['edges'], len(tree['nodes']))
 
     return {
-        'features': tree['nodes'],
-        'adjacency_list': tree['edges'],
-        'node_order': node_order,
-        'edge_order': edge_order
+        'features': torch.tensor(tree['nodes'], device=device, dtype=torch.float32),
+        'adjacency_list': torch.tensor(tree['edges'], device=device, dtype=torch.int64),
+        'node_order': torch.tensor(node_order, device=device, dtype=torch.int64),
+        'edge_order': torch.tensor(edge_order, device=device, dtype=torch.int64)
     }
 
 
@@ -122,12 +126,12 @@ def load_data(file_path):
             old_asts = dataset[key]['commits'][commit_sha]['old_asts']
             old_asts = adjust_asts(old_asts)
             # dataset[key]['commits'][commit_sha]['old_asts'] = [build_tree(x) for x in old_asts]
-            dataset[key]['commits'][commit_sha]['old_asts'] = [convert_tree_to_vectors(x) for x in old_asts]
+            dataset[key]['commits'][commit_sha]['old_asts'] = [convert_tree_to_tensors(x) for x in old_asts]
 
             cur_asts = dataset[key]['commits'][commit_sha]['cur_asts']
             cur_asts = adjust_asts(cur_asts)
             # dataset[key]['commits'][commit_sha]['cur_asts'] = [build_tree(x) for x in cur_asts]
-            dataset[key]['commits'][commit_sha]['cur_asts'] = [convert_tree_to_vectors(x) for x in cur_asts]
+            dataset[key]['commits'][commit_sha]['cur_asts'] = [convert_tree_to_tensors(x) for x in cur_asts]
         
         dataset[key]['commits'] = commits
 

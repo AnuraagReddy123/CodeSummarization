@@ -88,7 +88,7 @@ def train_step(input_pr, target_prdesc_shift, target_prdesc, model: Model, optim
     target_prdesc = torch.tensor(target_prdesc, dtype=torch.long, device=device)
     loss = loss_fn(logits, target_prdesc)
     accuracy = accuracy_fn(logits, target_prdesc)
-
+    
     optimizer.zero_grad()
     loss.backward()
     optimizer.step()
@@ -117,7 +117,7 @@ def main_train(model: Model, dataset, optimizer, epochs):
         # For every batch
         for batch, (batch_pr, batch_prdesc_shift, batch_prdesc) in enumerate(generate_batch(dataset, Constants.BATCH_SIZE)):
 
-            if batch > 0:
+            if batch > 4:
                 continue
 
             # Train the batch

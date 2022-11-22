@@ -1,5 +1,8 @@
 import torch
 import torch.nn as nn
+import numpy as np
+import math
+
 
 def loss_fn (logits, target_prdesc):
     '''
@@ -47,4 +50,33 @@ def accuracy_fn (logits, target_prdesc):
     # print("Correct: ", correct.sum(), " Mask: ", mask.sum())
 
     return accuracy 
-    
+
+
+def ngram(words, n):
+    return list(zip(*(words[i:] for i in range(n))))
+
+def bleu4(true, pred):
+    c = len(pred)
+    r = len(true)
+    bp = 1. if c > r else np.exp(1 - r / (c + 1e-10))
+    score = 0
+    #print("True NGRAM: ", pred[0])
+    for i in range(1, 5):
+        true_ngram = set(ngram(true, i))
+        pred_ngram = ngram(pred, i)
+        length = float(len(pred_ngram)) + 1e-10    
+        count = sum([1. if t in true_ngram else 0. for t in pred_ngram])
+        score += math.log(1e-10 + (count / length))
+    score = math.exp(score * .25)
+    bleu = bp * score
+    return bleu
+
+
+
+if __name__ == '__main__':
+
+    score = bleu4(['eclips', 'build', 'file', 'miss', 'eclips', 'project', 'file', 'gener', 'close' ], ['eclips', 'build', 'file', 'miss', 'eclips', 'eclips', 'file', 'gener'])
+
+    # score = bleu4(['eclips', 'build', 'file', 'miss', 'eclips', 'project', 'file', 'gener', 'close' ], ['eclips', 'build', 'file', 'miss', 'eclips', 'project', 'file', 'gener', 'close' ])
+
+    print(score)

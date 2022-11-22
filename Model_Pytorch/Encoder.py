@@ -97,10 +97,11 @@ class Encoder(nn.Module):
                 h_cur, c_cur = self.tree_lstm(cur['features'], cur['node_order'], cur['adjacency_list'], cur['edge_order'])
                 h_old, c_old = h_old[0], c_old[0]
                 h_cur, c_cur = h_cur[0], c_cur[0]
-                h_ast = self.lin_astdiffh(torch.cat((h_old, h_cur)).unsqueeze(0))
-                c_ast = self.lin_astdiffc(torch.cat((c_old, c_cur)).unsqueeze(0))
-                h_asts.append(h_ast)
-                c_asts.append(c_ast)
+                h_ast = self.lin_astdiffh(torch.cat((h_old, h_cur)).unsqueeze(0)) # (1, hidden_dim)
+                c_ast = self.lin_astdiffc(torch.cat((c_old, c_cur)).unsqueeze(0)) # (1, hidden_dim)
+
+                h_asts.append(h_ast.squeeze())
+                c_asts.append(c_ast.squeeze())
             
             h_asts = torch.stack(h_asts, dim=0) # (num_of_trees, hidden_dim)
             c_asts = torch.stack(c_asts, dim=0) # (num_of_trees, hidden_dim)
