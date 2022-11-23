@@ -158,10 +158,10 @@ if __name__=='__main__':
 
                 try:
                     cur_text = get_cur_version(repo_path, file.sha)
+                    old_text = get_prev_version(cur_text, file.patch)
                 except:
                     print("Continuing....")
                     continue
-                old_text = get_prev_version(cur_text, file.patch)
 
                 func_names = get_entity_names(file.patch)
 
