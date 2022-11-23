@@ -1,3 +1,4 @@
+import sys
 import torch
 import torch.nn as nn
 from Model import Model
@@ -21,9 +22,11 @@ def tensor_to_text(prdesc_tensor, vocab):
 
 if __name__=='__main__':
 
-    dataset = load_data(os.path.join('Data', 'dataset_preproc.json'))
+    n_points = int(sys.argv[1])
 
-    batch_pr, batch_prdesc_shift, batch_prdesc = next(generate_batch(dataset, 10))
+    dataset = load_data(os.path.join('Data', 'dataset_test.json'))
+
+    batch_pr, batch_prdesc_shift, batch_prdesc = next(generate_batch(dataset, n_points))
 
     model = Model(Constants.VOCAB_SIZE, Constants.HIDDEN_DIM, Constants.EMBEDDING_DIM, num_layers=Constants.NUM_LAYERS).to(device)
     model = nn.DataParallel(model)

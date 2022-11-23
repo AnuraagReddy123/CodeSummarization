@@ -117,8 +117,8 @@ def main_train(model: Model, dataset, optimizer, epochs):
         # For every batch
         for batch, (batch_pr, batch_prdesc_shift, batch_prdesc) in enumerate(generate_batch(dataset, Constants.BATCH_SIZE)):
 
-            if batch > 0:
-                continue
+            # if batch > 0:
+            #     continue
 
             # Train the batch
             loss, accuracy = train_step(batch_pr, batch_prdesc_shift, batch_prdesc, model, optimizer)
@@ -139,7 +139,7 @@ def main_train(model: Model, dataset, optimizer, epochs):
 
 if __name__ == '__main__':
     # Load dataset
-    dataset = load_data(os.path.join('Data', 'dataset_preproc.json'))
+    dataset = load_data(os.path.join('Data', 'dataset_train.json'))
 
     model = Model(Constants.VOCAB_SIZE, Constants.HIDDEN_DIM, Constants.EMBEDDING_DIM, num_layers=Constants.NUM_LAYERS).to(device)
     model = nn.DataParallel(model)
