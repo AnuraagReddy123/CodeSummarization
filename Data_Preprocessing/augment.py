@@ -127,15 +127,12 @@ if __name__=='__main__':
 
         # -------------- add issue title --------------------
 
-        # print(pull_req.issue_url)
-        issue_res = requests.get(pull_req.issue_url)
-        dataset[d_key]['issue_title'] = issue_res.json()['title']
-
-        # except:
-        #     print("No issue associated.")
-        #     dataset[d_key]['issue_title'] = ''
-
-        # exit(0)
+        try:
+            issue_res = requests.get(pull_req.issue_url)
+            dataset[d_key]['issue_title'] = issue_res.json()['title']
+        except:
+            print("No issue associated.")
+            dataset[d_key]['issue_title'] = ''
 
         print("issue title check.")
 
