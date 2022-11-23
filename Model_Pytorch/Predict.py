@@ -30,7 +30,7 @@ if __name__=='__main__':
 
     pred_batch_prdesc = model.module.predict(batch_pr, Constants.MAX_LEN)
 
-    with open('vocab.txt', 'r') as f:
+    with open('Data/vocab.txt', 'r') as f:
         vocab = eval(f.read())
 
     print(len(vocab))
@@ -39,9 +39,9 @@ if __name__=='__main__':
 
         gt = tensor_to_text(batch_prdesc[i], vocab)
         pred = tensor_to_text(pred_batch_prdesc[i], vocab)
-
+        # Take only uptill the END token
         gt1 = gt.split('<END>')[0].strip().split()
         pred1 = pred.split('<END>')[0].strip().split()
-        bleu = bleu4(gt1, pred1)
 
+        bleu = bleu4(gt1, pred1)
         print(f"Ground Truth:\n{gt}\n\nPrediction:\n{pred}\n\nBleu: {bleu}\n--------------------\n\n")

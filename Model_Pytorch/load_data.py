@@ -28,7 +28,7 @@ default_commit =  {
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
-def adjust_asts(asts: list):
+def pad_asts(asts: list):
 
     n = len(asts)
 
@@ -39,7 +39,7 @@ def adjust_asts(asts: list):
 
     return asts
 
-def adjust_commits(commits: dict):
+def pad_commits(commits: dict):
 
     n = len(commits)
 
@@ -54,7 +54,7 @@ def adjust_commits(commits: dict):
 
     return commits
 
-def adjust_body(body: list):
+def pad_body(body: list):
     
     '''Fixes the size of body'''
     if len(body) >= N_PRDESC:
@@ -112,11 +112,11 @@ def load_data(file_path):
         dataset = json.load(f)
     
     for key in dataset:
-        dataset[key]['body'] = np.array(adjust_body(dataset[key]['body']))
+        dataset[key]['body'] = np.array(pad_body(dataset[key]['body']))
         dataset[key]['issue_title'] = np.array(dataset[key]['issue_title'] if len(dataset[key]['issue_title']) > 0 else [1])
 
         commits = dataset[key]['commits']
-        commits = adjust_commits(commits)
+        commits = pad_commits(commits)
 
         for commit_sha in commits:
 
@@ -124,12 +124,12 @@ def load_data(file_path):
             commits[commit_sha]['comments'] = np.array(commits[commit_sha]['comments'] if len(commits[commit_sha]['comments']) > 0 else [1])
 
             old_asts = dataset[key]['commits'][commit_sha]['old_asts']
-            old_asts = adjust_asts(old_asts)
+            old_asts = pad_asts(old_asts)
             # dataset[key]['commits'][commit_sha]['old_asts'] = [build_tree(x) for x in old_asts]
             dataset[key]['commits'][commit_sha]['old_asts'] = [convert_tree_to_tensors(x) for x in old_asts]
 
             cur_asts = dataset[key]['commits'][commit_sha]['cur_asts']
-            cur_asts = adjust_asts(cur_asts)
+            cur_asts = pad_asts(cur_asts)
             # dataset[key]['commits'][commit_sha]['cur_asts'] = [build_tree(x) for x in cur_asts]
             dataset[key]['commits'][commit_sha]['cur_asts'] = [convert_tree_to_tensors(x) for x in cur_asts]
         

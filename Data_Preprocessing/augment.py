@@ -8,13 +8,11 @@ import shlex
 import subprocess
 import whatthepatch
 from dotenv import load_dotenv
+from process_trees import get_tree
 
 load_dotenv()
 github = Github(os.environ['TOKEN'])
 
-TS_ROOT = path.join('..', 'tree-sitter-codeviews')
-INPUT_PATH = path.join(TS_ROOT, 'code_test_files', 'java', 'input.java')
-OUTPUT_PATH = path.join(TS_ROOT, 'output_json', 'AST_output.json')
 
 MAX_ASTS = 1
 
@@ -54,7 +52,7 @@ def clone_repo(username, repo_name):
             Clones the repo if it doesn't exist already
         '''
 
-        repo_path = path.join('Data_Preprocessing', 'repos', username, repo_name)
+        repo_path = path.join('repos', username, repo_name)
         if not path.isdir(repo_path):
             os.makedirs(repo_path)
             command = shlex.split(f'git clone https://github.com/{username}/{repo_name}.git {repo_path}')
@@ -100,66 +98,7 @@ def get_prev_version(cur_text, file_patch):
     return old_text
 
 
-def get_custom_ast(ast):
 
-    '''
-        custom represenation :-
-        {
-            <node_id> : { "label": <label>, "children": [<child_id>, <child_id>, ...] },
-        }
-    '''
-
-    custom_ast = {}
-
-    for node in ast['nodes']:
-
-        node_id = node['id']
-        node_type = node['node_type']
-        node_label = node['label']
-
-        custom_ast[node_id] = {'label': f'{node_type}_{node_label}', 'children': []}
-
-    for edge in ast['links']:
-
-        custom_ast[edge['source']]['children'].append(edge['target'])
-
-    return custom_ast
-    
-def gen_trees(ast):
-    # Load the data
-    custom_ast = {}
-    custom_ast['nodes'] = []
-
-    for node in ast['nodes']:
-        custom_ast['nodes'].append([node['node_type'], node['label']])
-    
-    num = ast['nodes'][0]['id']
-    
-    custom_ast['edges'] = []
-
-    for edge in ast['links']:
-        src, tar = edge['source'] - num, edge['target'] - num
-        custom_ast['edges'].append([src, tar])
-
-    return custom_ast
-
-
-def get_ast(text):
-
-    with open(INPUT_PATH, 'w+') as f:
-        f.write(text)
-
-    st = time.time()
-    subprocess.run('python main.py', shell=True, cwd=TS_ROOT, stdout=subprocess.PIPE)
-    ed = time.time()
-    print(f'Time taken by tree sitter: {ed - st}')
-
-    with open(OUTPUT_PATH, 'r') as f:
-        ast = json.load(f)
-
-    ast = gen_trees(ast)
-
-    return ast
 
 
 
@@ -167,10 +106,10 @@ if __name__=='__main__':
 
     st_g = time.time()
 
-    if not path.isdir(path.join('Data_Preprocessing', 'repos')):
-        os.makedirs(path.join('Data_Preprocessing', 'repos'))
+    if not path.isdir(path.join('repos')):
+        os.makedirs(path.join('repos'))
 
-    with open(path.join('Data', 'dataset.json')) as f:
+    with open(path.join('..', 'Data', 'dataset.json')) as f:
         dataset = json.load(f)
     
     user, repo = [None]*2
@@ -188,26 +127,29 @@ if __name__=='__main__':
 
         # -------------- add issue title --------------------
 
-        try:
-            issue_res = requests.get(pull_req.issue_url)
-            dataset[d_key]['issue_title'] = issue_res.json()['title']
-        except:
-            print("No issue associated.")
-            dataset[d_key]['issue_title'] = ''
+        # print(pull_req.issue_url)
+        issue_res = requests.get(pull_req.issue_url)
+        dataset[d_key]['issue_title'] = issue_res.json()['title']
+
+        # except:
+        #     print("No issue associated.")
+        #     dataset[d_key]['issue_title'] = ''
+
+        # exit(0)
 
         print("issue title check.")
 
-        # ---------------- ASTs ---------------------------------------
+        # ---------------- add ASTs ---------------------------------------
         try:
             clone_repo(username, repo_name)
-            repo_path = path.join('Data_Preprocessing', 'repos', username, repo_name)
+            repo_path = path.join('repos', username, repo_name)
 
             for commit in pull_req.get_commits():
 
                 dataset[d_key]['commits'][f"'{commit.sha}'"]['cur_asts'] = []
                 dataset[d_key]['commits'][f"'{commit.sha}'"]['old_asts'] = []
 
-                print(f'Files: {len(commit.files)}')
+                print(f'COMMIT {commit.sha}: {len(commit.files)} files.')
 
                 for file in commit.files:
 
@@ -221,21 +163,17 @@ if __name__=='__main__':
                     cur_text = get_cur_version(repo_path, file.sha)
                     old_text = get_prev_version(cur_text, file.patch)
 
-                    print(cur_text)
-                    print('\n\n------------------------\n\n')
-                    print(old_text)
+                    func_names = get_entity_names(file.patch)
 
-                    exit(0)
+                    cur_asts = get_tree(cur_text, func_names)
+                    old_asts = get_tree(old_text, func_names)
 
-                    cur_ast = get_ast(cur_text)
-                    old_ast = get_ast(old_text)
-
-                    dataset[d_key]['commits'][f"'{commit.sha}'"]['cur_asts'].append(cur_ast)
-                    dataset[d_key]['commits'][f"'{commit.sha}'"]['old_asts'].append(old_ast)
+                    dataset[d_key]['commits'][f"'{commit.sha}'"]['cur_asts'].extend(cur_asts)
+                    dataset[d_key]['commits'][f"'{commit.sha}'"]['old_asts'].extend(old_asts)
         except:
             continue
         
-    with open(path.join('Data', 'dataset_aug.json'), 'w+') as f:
+    with open(path.join('..', 'Data', 'dataset_aug.json'), 'w+') as f:
         json.dump(dataset, f)
     
     ed_g = time.time()

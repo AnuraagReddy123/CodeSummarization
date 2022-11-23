@@ -42,13 +42,12 @@ def _preprocess_text(text: str):
     
     words = word_tokenize(text_p)
     
-    stop_words = stopwords.words('english')
-    filtered_words = [word for word in words if word not in stop_words]
+    # stop_words = stopwords.words('english')
+    # filtered_words = [word for word in words if word not in stop_words]
     
-    porter = PorterStemmer()
-    stemmed = [porter.stem(word) for word in filtered_words]
-    
-    return stemmed
+    # porter = PorterStemmer()
+    # stemmed = [porter.stem(word) for word in filtered_words]
+    return ' '.join(words)
 
 
 def preprocess_text(dataset: dict):
@@ -59,7 +58,7 @@ def preprocess_text(dataset: dict):
         print(f'--------- datapoint {i} --------------')
         i += 1
         
-        dataset[key]['body'] = ' '.join(_preprocess_text(dataset[key]['body']))
+        dataset[key]['body'] = _preprocess_text(dataset[key]['body'])
         
         del dataset[key]['id']
         del dataset[key]['cms']
@@ -67,13 +66,13 @@ def preprocess_text(dataset: dict):
         for commit_sha in dataset[key]['commits']:
 
             cm = dataset[key]['commits'][commit_sha]['cm']
-            dataset[key]['commits'][commit_sha]['cm'] = ' '.join(_preprocess_text(cm))
+            dataset[key]['commits'][commit_sha]['cm'] = _preprocess_text(cm)
 
             comment_para = ' '.join(dataset[key]['commits'][commit_sha]['comments'])
-            comment_para = ' '.join(_preprocess_text(comment_para))
+            comment_para = _preprocess_text(comment_para)
             dataset[key]['commits'][commit_sha]['comments'] = comment_para
             
-        dataset[key]['issue_title'] = ' '.join(_preprocess_text(dataset[key]['issue_title']))
+        dataset[key]['issue_title'] = _preprocess_text(dataset[key]['issue_title'])
     
     return dataset
 
@@ -196,21 +195,21 @@ def encode_word_to_index(dataset: dict, vocab: list):
 
 if __name__=='__main__':
 
-    with open('Data/dataset_aug.json') as f:
+    with open('../Data/dataset_aug.json') as f:
         dataset: dict = json.load(f)
 
     dataset = preprocess_text(dataset)
 
     vocab: list = compute_vocab(dataset)
     
-    with open('vocab.txt', 'w+') as f:
+    with open('../Data/vocab.txt', 'w+') as f:
         f.write(str(vocab))
 
-    with open('vocab.txt', 'r') as f:
+    with open('../Data/vocab.txt', 'r') as f:
         vocab = eval(f.read())
 
     dataset = encode_word_to_index(dataset, vocab)
 
-    with open('Data/dataset_preproc.json', 'w+') as f:
+    with open('../Data/dataset_preproc.json', 'w+') as f:
         f.write(json.dumps(dataset))
 
