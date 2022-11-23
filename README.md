@@ -21,7 +21,7 @@ cd Data
 gdown 19PARrtkQ2GfFPodEkkafKogRQAJvQofL
 unzip pr_dump.json.zip
 mv pr_dump.json dataset_all.json
-python shrink.py
+python shrink.py <size of the dataset>
 ```
 
 5. Add a ```.env``` file in ```Data_Preprocessing/``` folder with the Github PAT token
@@ -31,4 +31,21 @@ TOKEN=<Your Github PAT>
 ```
 
 5. Run the steps in Data_Preprocessing/README.md
-6. Train the model
+
+6. Split the dataset into train and test sets after preprocessing.
+```
+cd Data
+python split.py <train_size> <test_size>
+```
+7. Train the model
+
+    Set the BATCH_SIZE and EPOCHS in ```Data_Preprocessing/Utils/Constants.py``` and run:
+
+```
+python Model_Pytorch/Train.py
+```
+
+8. Prediction
+```
+python Model_Pytorch/Predict.py
+```
