@@ -137,38 +137,39 @@ if __name__=='__main__':
         print("issue title check.")
 
         # ---------------- add ASTs ---------------------------------------
-        try:
-            clone_repo(username, repo_name)
-            repo_path = path.join('repos', username, repo_name)
+        clone_repo(username, repo_name)
+        repo_path = path.join('repos', username, repo_name)
 
-            for commit in pull_req.get_commits():
+        for commit in pull_req.get_commits():
 
-                dataset[d_key]['commits'][f"'{commit.sha}'"]['cur_asts'] = []
-                dataset[d_key]['commits'][f"'{commit.sha}'"]['old_asts'] = []
+            dataset[d_key]['commits'][f"'{commit.sha}'"]['cur_asts'] = []
+            dataset[d_key]['commits'][f"'{commit.sha}'"]['old_asts'] = []
 
-                print(f'COMMIT {commit.sha}: {len(commit.files)} files.')
+            print(f'COMMIT {commit.sha}: {len(commit.files)} files.')
 
-                for file in commit.files:
+            for file in commit.files:
 
-                    if len(dataset[d_key]['commits'][f"'{commit.sha}'"]['cur_asts']) >= MAX_ASTS:
-                        break
+                if len(dataset[d_key]['commits'][f"'{commit.sha}'"]['cur_asts']) >= MAX_ASTS:
+                    break
 
-                    # Considering only the changes in JAVA files.
-                    if not file.filename.endswith('.java'):
-                        continue
+                # Considering only the changes in JAVA files.
+                if not file.filename.endswith('.java'):
+                    continue
 
+                try:
                     cur_text = get_cur_version(repo_path, file.sha)
-                    old_text = get_prev_version(cur_text, file.patch)
+                except:
+                    print("Continuing....")
+                    continue
+                old_text = get_prev_version(cur_text, file.patch)
 
-                    func_names = get_entity_names(file.patch)
+                func_names = get_entity_names(file.patch)
 
-                    cur_asts = get_tree(cur_text, func_names)
-                    old_asts = get_tree(old_text, func_names)
+                cur_asts = get_tree(cur_text, func_names)
+                old_asts = get_tree(old_text, func_names)
 
-                    dataset[d_key]['commits'][f"'{commit.sha}'"]['cur_asts'].extend(cur_asts)
-                    dataset[d_key]['commits'][f"'{commit.sha}'"]['old_asts'].extend(old_asts)
-        except:
-            continue
+                dataset[d_key]['commits'][f"'{commit.sha}'"]['cur_asts'].extend(cur_asts)
+                dataset[d_key]['commits'][f"'{commit.sha}'"]['old_asts'].extend(old_asts)
         
     with open(path.join('..', 'Data', 'dataset_aug.json'), 'w+') as f:
         json.dump(dataset, f)

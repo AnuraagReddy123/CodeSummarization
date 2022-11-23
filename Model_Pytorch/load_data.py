@@ -14,7 +14,7 @@ N_COMMITS = 10
 N_PRDESC = Constants.MAX_LEN
 
 default_ast = {
-    'nodes': [[-1, -1], [-1, -1]],
+    'nodes': [[1, 1], [1, 1]],
     'edges': [[0,1]]
 }
 

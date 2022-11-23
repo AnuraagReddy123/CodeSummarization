@@ -82,6 +82,8 @@ def compute_vocab(dataset: dict):
     vocab_dict = {}
 
     def _add(word):
+        if word == '<START>' or word == '<BLANK>' or word == '<END>' or word == '<UNK>':
+            return
         if word in vocab_dict:
             vocab_dict[word] += 1
         else:
@@ -94,13 +96,8 @@ def compute_vocab(dataset: dict):
         for x in dataset[key]['issue_title'].split():
             _add(x)
 
-        # vocab_set = vocab_set.union(dataset[key]['body'].split())
-        # vocab_set = vocab_set.union(dataset[key]['issue_title'].split())
-
         for commit_sha in dataset[key]['commits']:
-            # vocab_set = vocab_set.union(dataset[key]['commits'][commit_sha]['cm'].split())
-            # vocab_set = vocab_set.union(dataset[key]['commits'][commit_sha]['comments'].split())
-
+            
             for x in dataset[key]['commits'][commit_sha]['cm'].split():
                 _add(x)
             for x in dataset[key]['commits'][commit_sha]['comments'].split():
@@ -108,16 +105,6 @@ def compute_vocab(dataset: dict):
 
             old_asts = dataset[key]['commits'][commit_sha]['old_asts']
             cur_asts = dataset[key]['commits'][commit_sha]['cur_asts']
-
-            # for old_ast in old_asts:
-            #     for node_id in old_ast:
-            #         _add(old_ast[node_id]['label'])
-            #         # vocab_set.add(old_ast[node_id]['label'])
-
-            # for cur_ast in cur_asts:
-            #     for node_id in cur_ast:
-            #         _add(cur_ast[node_id]['label'])
-            #         # vocab_set.add(cur_ast[node_id]['label'])
 
             for old_ast in old_asts:
                 for node in old_ast['nodes']:
@@ -129,11 +116,8 @@ def compute_vocab(dataset: dict):
                     _add(node[0])
                     _add(node[1])
 
-    # <START> -> 0
-    # <BLANK> -> 1
-    # <END> -> 2
-    # <UNK> -> 3
-    
+    # <START> -> 0, <BLANK> -> 1, <END> -> 2, <UNK> -> 3
+
     vocab_count = list(vocab_dict.items())
     vocab_count.sort(key=lambda k: k[1], reverse=True)
     if len(vocab_count) > MAX_VOCAB-4:

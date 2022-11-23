@@ -103,7 +103,7 @@ def get_subtree(tree, function_name):
 
 
 default_ast = {
-    'nodes': [[-1, -1], [-1, -1]],
+    'nodes': [['<BLANK>', '<BLANK>'], ['<BLANK>', '<BLANK>']],
     'edges': [[0,1]]
 }
 
