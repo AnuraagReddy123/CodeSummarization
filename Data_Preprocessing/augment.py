@@ -140,10 +140,16 @@ if __name__=='__main__':
         clone_repo(username, repo_name)
         repo_path = path.join('repos', username, repo_name)
 
+        commit_shas = list(dataset[d_key]['commits'].keys())
+
+        for commit_sha in commit_shas:
+            dataset[d_key]['commits'][commit_sha]['cur_asts'] = []
+            dataset[d_key]['commits'][commit_sha]['old_asts'] = []
+
         for commit in pull_req.get_commits():
 
-            dataset[d_key]['commits'][f"'{commit.sha}'"]['cur_asts'] = []
-            dataset[d_key]['commits'][f"'{commit.sha}'"]['old_asts'] = []
+            if f"'{commit.sha}'" not in commit_shas:
+                continue
 
             print(f'COMMIT {commit.sha}: {len(commit.files)} files.')
 
