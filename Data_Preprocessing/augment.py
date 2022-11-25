@@ -2,7 +2,7 @@ import os
 from os import path
 import json
 import time
-from github import Github
+from github import Github, GithubException
 import requests
 import shlex
 import subprocess
@@ -99,13 +99,14 @@ def get_prev_version(cur_text, file_patch):
     return old_text
 
 
-def wait_for_reset():
+def wait_to_reset():
 
-        now_unix = time.mktime(datetime.datetime.now().timetuple())
-        wait_time = github.rate_limiting_resettime - now_unix + 60 # secs
-        print(f"Remaining Requests: {github.rate_limiting[0]}, wait time: {wait_time/60} mins.", )
-        time.sleep(wait_time)
-
+        if github.rate_limiting[0] <= 0:
+            now_unix = time.mktime(datetime.datetime.now().timetuple())
+            wait_time = github.rate_limiting_resettime - now_unix + 60 # secs
+            print(f"Remaining Requests: {github.rate_limiting[0]}, wait time: {wait_time/60} mins.", )
+            time.sleep(wait_time)
+            
 
 if __name__=='__main__':
 
@@ -129,12 +130,14 @@ if __name__=='__main__':
         username, repo_name, pull_number = parse_key(d_key)
 
         try:
+            user, repo, pull_req = get_obj('dvmmvdv', repo_name, pull_number, user, repo)
+        except GithubException as e:
+            print(e.data)
+            wait_to_reset()
             user, repo, pull_req = get_obj(username, repo_name, pull_number, user, repo)
-        except:
-            wait_for_reset()
+        except Exception as e:
+            time.sleep(5)
             user, repo, pull_req = get_obj(username, repo_name, pull_number, user, repo)
-            print(username, repo_name, pull_number)
-        
 
         # -------------- add issue title --------------------
 
@@ -160,7 +163,7 @@ if __name__=='__main__':
         try:
             commits = pull_req.get_commits()
         except:
-            wait_for_reset()
+            wait_to_reset()
             commits = pull_req.get_commits()
             print(username, repo_name, pull_number)
 
