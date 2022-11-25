@@ -134,8 +134,6 @@ if __name__=='__main__':
             wait_for_reset()
             user, repo, pull_req = get_obj(username, repo_name, pull_number, user, repo)
             print(username, repo_name, pull_number)
-            print(f'\n--- datapoint {i-1} -------------------\n')
-            exit(0)
         
 
         # -------------- add issue title --------------------
@@ -164,6 +162,7 @@ if __name__=='__main__':
         except:
             wait_for_reset()
             commits = pull_req.get_commits()
+            print(username, repo_name, pull_number)
 
         for commit in commits:
 
