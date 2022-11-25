@@ -9,10 +9,11 @@ import subprocess
 import whatthepatch
 from dotenv import load_dotenv
 from process_trees import get_tree
+import datetime
+import time
 
 load_dotenv()
 github = Github(os.environ['TOKEN'])
-
 
 MAX_ASTS = 1
 
@@ -98,8 +99,12 @@ def get_prev_version(cur_text, file_patch):
     return old_text
 
 
+def wait_for_reset():
 
-
+        now_unix = time.mktime(datetime.datetime.now().timetuple())
+        wait_time = github.rate_limiting_resettime - now_unix + 60 # secs
+        print(f"Remaining Requests: {github.rate_limiting[0]}, wait time: {wait_time/60} mins.", )
+        time.sleep(wait_time)
 
 
 if __name__=='__main__':
@@ -126,9 +131,12 @@ if __name__=='__main__':
         try:
             user, repo, pull_req = get_obj(username, repo_name, pull_number, user, repo)
         except:
+            wait_for_reset()
+            user, repo, pull_req = get_obj(username, repo_name, pull_number, user, repo)
             print(username, repo_name, pull_number)
             print(f'\n--- datapoint {i-1} -------------------\n')
             exit(0)
+        
 
         # -------------- add issue title --------------------
 
@@ -151,7 +159,13 @@ if __name__=='__main__':
             dataset[d_key]['commits'][commit_sha]['cur_asts'] = []
             dataset[d_key]['commits'][commit_sha]['old_asts'] = []
 
-        for commit in pull_req.get_commits():
+        try:
+            commits = pull_req.get_commits()
+        except:
+            wait_for_reset()
+            commits = pull_req.get_commits()
+
+        for commit in commits:
 
             if f"'{commit.sha}'" not in commit_shas:
                 continue
@@ -171,7 +185,7 @@ if __name__=='__main__':
                     cur_text = get_cur_version(repo_path, file.sha)
                     old_text = get_prev_version(cur_text, file.patch)
                 except:
-                    print("Continuing....")
+                    print("Skipping the file...")
                     continue
 
                 func_names = get_entity_names(file.patch)
@@ -181,6 +195,10 @@ if __name__=='__main__':
 
                 dataset[d_key]['commits'][f"'{commit.sha}'"]['cur_asts'].extend(cur_asts)
                 dataset[d_key]['commits'][f"'{commit.sha}'"]['old_asts'].extend(old_asts)
+
+        # Save after every point
+        with open(path.join('..', 'Data', 'dataset_aug.json'), 'w+') as f:
+            json.dump(dataset, f)
         
     with open(path.join('..', 'Data', 'dataset_aug.json'), 'w+') as f:
         json.dump(dataset, f)
