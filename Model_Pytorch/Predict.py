@@ -46,8 +46,8 @@ if __name__=='__main__':
         gt = tensor_to_text(batch_prdesc[i], vocab)
         pred = tensor_to_text(pred_batch_prdesc[i], vocab)
         # Take only uptill the END token
-        gt1 = gt.split('<END>')[0].strip().split()
-        pred1 = pred.split('<END>')[0].strip().split()
+        gt1 = gt.split('<END>')[0].strip().split() + ['<END>']
+        pred1 = pred.split('<END>')[0].strip().split() + ['<END>']
 
         bleu = bleu4(gt1, pred1)
         r_score = r.get_scores(' '.join(pred1), ' '.join(gt1))[0]
