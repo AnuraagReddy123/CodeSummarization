@@ -1,109 +1,115 @@
-package org.molgenis.oneclickimporter.service;
+/*!
+ * This program is free software; you can redistribute it and/or modify it under the
+ * terms of the GNU Lesser General Public License, version 2.1 as published by the Free Software
+ * Foundation.
+ *
+ * You should have received a copy of the GNU Lesser General Public License along with this
+ * program; if not, you can obtain a copy at http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html
+ * or from the Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ *
+ * This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+ * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU Lesser General Public License for more details.
+ *
+ * Copyright (c) 2002-2013 Pentaho Corporation..  All rights reserved.
+ */
 
+package org.pentaho.platform.web.http.api.resources;
 
-import org.mockito.Mock;
-import org.molgenis.data.DataService;
-import org.molgenis.data.Entity;
-import org.molgenis.data.EntityManager;
-import org.molgenis.data.meta.AttributeType;
-import org.molgenis.data.meta.DefaultPackage;
-import org.molgenis.data.meta.MetaDataService;
-import org.molgenis.data.meta.model.Attribute;
-import org.molgenis.data.meta.model.AttributeFactory;
-import org.molgenis.data.meta.model.EntityType;
-import org.molgenis.data.meta.model.EntityTypeFactory;
-import org.molgenis.data.populate.IdGenerator;
-import org.molgenis.oneclickimporter.model.Column;
-import org.molgenis.oneclickimporter.model.DataCollection;
-import org.molgenis.oneclickimporter.service.Impl.EntityServiceImpl;
-import org.molgenis.test.AbstractMockitoTest;
-import org.testng.annotations.BeforeMethod;
-import org.testng.annotations.Test;
+import org.apache.commons.lang.StringUtils;
+import org.codehaus.enunciate.Facet;
+import org.pentaho.platform.api.engine.IPentahoSession;
+import org.pentaho.platform.api.ui.IThemeManager;
+import org.pentaho.platform.api.usersettings.IUserSettingService;
+import org.pentaho.platform.engine.core.system.PentahoSessionHolder;
+import org.pentaho.platform.engine.core.system.PentahoSystem;
 
-import java.util.Arrays;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.GET;
+import javax.ws.rs.POST;
+import javax.ws.rs.Path;
+import javax.ws.rs.Produces;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+import java.util.ArrayList;
 import java.util.List;
 
-import static org.mockito.ArgumentMatchers.anyBoolean;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.*;
-import static org.testng.Assert.assertEquals;
+import static javax.ws.rs.core.MediaType.*;
 
-public class EntityServiceImplTest extends AbstractMockitoTest
-{
+/**
+ * Resource manages themes for the platform
+ * 
+ *
+ */
+@Facet( name = "Unsupported" )
+@Path( "/theme" )
+public class ThemeResource extends AbstractJaxRSResource {
 
-	@Mock
-	private DefaultPackage defaultPackage = mock(DefaultPackage.class);
+  public ThemeResource() {
+  }
 
-	@Mock
-	private EntityTypeFactory entityTypeFactory = mock(EntityTypeFactory.class);
+  private IPentahoSession getPentahoSession() {
+    return PentahoSessionHolder.getSession();
+  }
 
-	@Mock
-	private AttributeFactory attributeFactory = mock(AttributeFactory.class);
+  /**
+   * List the current supported themes in the platform
+   * 
+   * @return list of themes
+   */
+  @GET
+  @Path( "/list" )
+  @Produces( { APPLICATION_JSON, APPLICATION_XML } )
+  @Facet( name = "Unsupported" )
+  public List<Theme> getSystemThemes() {
+    ArrayList<Theme> themes = new ArrayList<Theme>();
+    IThemeManager themeManager = PentahoSystem.get( IThemeManager.class );
+    List<String> ids = themeManager.getSystemThemeIds();
+    for ( String id : ids ) {
+      org.pentaho.platform.api.ui.Theme theme = themeManager.getSystemTheme( id );
+      if ( theme.isHidden() == false ) {
+        themes.add( new Theme( id, theme.getName() ) );
+      }
+    }
+    return themes;
+  }
 
-	@Mock
-	private IdGenerator idGenerator = mock(IdGenerator.class);
+  /**
+   * Set the current theme to the one provided in this request
+   * 
+   * 
+   * @param theme (theme to be changed to)
+   * 
+   * @return
+   */
+  @POST
+  @Path( "/set" )
+  @Consumes( { WILDCARD } )
+  @Produces( "text/plain" )
+  @Facet ( name = "Unsupported" )
+  public Response setTheme( String theme ) {
+    getPentahoSession().setAttribute( "pentaho-user-theme", theme );
+    IUserSettingService settingsService = PentahoSystem.get( IUserSettingService.class, getPentahoSession() );
+    settingsService.setUserSetting( "pentaho-user-theme", theme );
+    return getActiveTheme();
+  }
 
-	@Mock
-	private DataService dataService = mock(DataService.class);
+  /**
+   * Return the name of the active theme
+   * 
+   * @return active theme
+   */
+  @GET
+  @Path( "/active" )
+  @Produces( "text/plain" )
+  @Facet ( name = "Unsupported" )
+  public Response getActiveTheme() {
+    IUserSettingService settingsService = PentahoSystem.get( IUserSettingService.class, getPentahoSession() );
+    return Response.ok(
+      StringUtils.defaultIfEmpty( (String) getPentahoSession().getAttribute( "pentaho-user-theme" ), settingsService
+        .getUserSetting( "pentaho-user-theme", PentahoSystem.getSystemSetting( "default-theme", "onyx" ) )
+          .getSettingValue() ) ).type( MediaType.TEXT_PLAIN ).build();
+  }
 
-	@Mock
-	private EntityManager entityManager = mock(EntityManager.class);
-
-	@Mock
-	private OneClickImporterService oneClickImporterService = mock(OneClickImporterService.class);
-
-	private EntityService entityService;
-
-	@BeforeMethod
-	public void setup()
-	{
-		this.entityService = new EntityServiceImpl(defaultPackage, entityTypeFactory, attributeFactory, idGenerator,
-				dataService, entityManager, oneClickImporterService);
-
-		when(oneClickImporterService.guessAttributeType(any())).thenReturn(AttributeType.STRING);
-	}
-
-
-	@Test
-	public void testCreateEntity() throws Exception
-	{
-		String tableName = "super-powers";
-		List<Object> userNames = Arrays.asList("Mark", "Mariska", "Bart");
-		List<Object> superPowers = Arrays.asList("Arrow functions", "Cookies", "Knots");
-		List<Column> columns = Arrays.asList(
-				Column.create("user name", 0, userNames),
-				Column.create("super power", 1, superPowers)
-		);
-		DataCollection dataCollection = DataCollection.create(tableName, columns);
-
-		String generatedId = "id_0";
-		EntityType table = mock(EntityType.class);
-		when(entityTypeFactory.create()).thenReturn(table);
-		when(idGenerator.generateId()).thenReturn(generatedId);
-
-		Attribute idAttr = mock(Attribute.class);
-		Attribute nameAttr = mock(Attribute.class);
-		Attribute powerAttr = mock(Attribute.class);
-		when(attributeFactory.create()).thenReturn(idAttr, nameAttr, powerAttr);
-		when(idAttr.setName(anyString())).thenReturn(idAttr);
-		when(idAttr.setVisible(anyBoolean())).thenReturn(idAttr);
-		when(idAttr.setAuto(anyBoolean())).thenReturn(idAttr);
-		when(idAttr.setIdAttribute(anyBoolean())).thenReturn(idAttr);
-
-		MetaDataService meta = mock(MetaDataService.class);
-		when(dataService.getMeta()).thenReturn(meta);
-
-		Entity row1 = mock(Entity.class);
-		Entity row2 = mock(Entity.class);
-		Entity row3 = mock(Entity.class);
-		when(entityManager.create(table, EntityManager.CreationMode.NO_POPULATE))
-				.thenReturn(row1, row2, row3);
-
-		EntityType dataTable = entityService.createEntity(dataCollection);
-		assertEquals(dataTable, table);
-
-		verify(table).setPackage(defaultPackage);
-		verify(table).setId(generatedId);
-		verify(table).setLabel(tableName);
-	}
 }

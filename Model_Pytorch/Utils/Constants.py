@@ -1,8 +1,9 @@
+MAX_VOCAB_SIZE = 10000
 
 with open('Data/vocab.txt', 'r') as f:
     vocab = eval(f.read())
 
-VOCAB_SIZE = min(len(vocab), 10000)
+VOCAB_SIZE = min(len(vocab), MAX_VOCAB_SIZE)
 EMBEDDING_DIM = 128
 HIDDEN_DIM = 128
 MAX_COMMITS = 10

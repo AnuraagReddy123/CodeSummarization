@@ -115,7 +115,7 @@ if __name__=='__main__':
     if not path.isdir(path.join('repos')):
         os.makedirs(path.join('repos'))
 
-    with open(path.join('..', 'Data', 'dataset.json')) as f:
+    with open(path.join('..', 'Data', 'dataset_aug.json')) as f:
         dataset = json.load(f)
     
     user, repo = [None]*2
@@ -125,12 +125,16 @@ if __name__=='__main__':
     for d_key in dataset:
 
         print(f'\n--- datapoint {i} -------------------\n')
-        i += 1
+
+        if i <= 9490:
+            # skip
+            i += 1
+            continue
 
         username, repo_name, pull_number = parse_key(d_key)
 
         try:
-            user, repo, pull_req = get_obj('dvmmvdv', repo_name, pull_number, user, repo)
+            user, repo, pull_req = get_obj(username, repo_name, pull_number, user, repo)
         except GithubException as e:
             print(e.data)
             wait_to_reset()
@@ -198,9 +202,13 @@ if __name__=='__main__':
                 dataset[d_key]['commits'][f"'{commit.sha}'"]['cur_asts'].extend(cur_asts)
                 dataset[d_key]['commits'][f"'{commit.sha}'"]['old_asts'].extend(old_asts)
 
-        # Save after every point
-        with open(path.join('..', 'Data', 'dataset_aug.json'), 'w+') as f:
-            json.dump(dataset, f)
+        # Save after every 10 points
+        if i%10 == 0:
+            with open(path.join('..', 'Data', 'dataset_aug.json'), 'w+') as f:
+                json.dump(dataset, f)
+            print("Dataset saved.")
+
+        i += 1
         
     with open(path.join('..', 'Data', 'dataset_aug.json'), 'w+') as f:
         json.dump(dataset, f)

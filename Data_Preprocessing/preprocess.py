@@ -20,7 +20,7 @@ import re
 
 import json
 
-MAX_VOCAB = 10000
+MAX_VOCAB = 50000
 
 def _preprocess_text(text: str):
 
@@ -89,7 +89,11 @@ def compute_vocab(dataset: dict):
         else:
             vocab_dict[word] = 1
 
+    i = 1
     for key in dataset:
+
+        print(f'--------- datapoint {i} --------------')
+        i += 1
 
         for x in dataset[key]['body'].split():
             _add(x)
@@ -139,7 +143,11 @@ def encode_word_to_index(dataset: dict, vocab: list):
         else:
             return 3
 
+    i = 1
     for key in dataset:
+
+        print(f"-------- datapoint {i} ----------")
+        i += 1
 
         dataset[key]['body'] = [_index(x) for x in dataset[key]['body'].split()]
         dataset[key]['issue_title'] = [_index(x) for x in dataset[key]['issue_title'].split()]
@@ -184,15 +192,22 @@ if __name__=='__main__':
 
     dataset = preprocess_text(dataset)
 
+    print("preprocessed text.")
+
     vocab: list = compute_vocab(dataset)
+
     
     with open('../Data/vocab.txt', 'w+') as f:
         f.write(str(vocab))
+
+    print("vocab saved.")
 
     with open('../Data/vocab.txt', 'r') as f:
         vocab = eval(f.read())
 
     dataset = encode_word_to_index(dataset, vocab)
+
+    print("encoded word to index.")
 
     with open('../Data/dataset_preproc.json', 'w+') as f:
         f.write(json.dumps(dataset))
