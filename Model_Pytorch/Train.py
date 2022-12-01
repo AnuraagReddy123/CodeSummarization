@@ -82,9 +82,10 @@ def train_step(input_pr, target_prdesc_shift, target_prdesc, model: Model, optim
         decoder: The decoder
         optimizer: The optimizer
     '''
+    model.train()
+
     logits = model(input_pr, target_prdesc_shift)
     logits = logits[:, :-1]
-    # print(logits.shape)
     target_prdesc = torch.tensor(target_prdesc, dtype=torch.long, device=device)
     loss = loss_fn(logits, target_prdesc)
     accuracy = accuracy_fn(logits, target_prdesc)
@@ -95,7 +96,22 @@ def train_step(input_pr, target_prdesc_shift, target_prdesc, model: Model, optim
 
     return loss, accuracy
 
-def main_train(model: Model, dataset, optimizer, epochs):
+def valid_step(input_pr, target_prdesc_shift, target_prdesc, model: Model):
+
+    model.eval()
+
+    with torch.no_grad():
+
+        logits = model(input_pr, target_prdesc_shift)
+        logits = logits[:, :-1]
+        target_prdesc = torch.tensor(target_prdesc, dtype=torch.long, device=device)
+        loss = loss_fn(logits, target_prdesc)
+        accuracy = accuracy_fn(logits, target_prdesc)
+
+        return loss, accuracy
+
+
+def main_train(model: Model, dataset_train, dataset_valid, optimizer, epochs):
     '''
     Train the model
 
@@ -106,46 +122,64 @@ def main_train(model: Model, dataset, optimizer, epochs):
         optimizer: The optimizer
         epochs: The number of epochs
     '''
-    losses = []
-    accuracies = []
+    train_losses = []
+    train_accuracies = []
+    valid_losses = []
+    valid_accuracies = []
 
-    max_accuracy = - math.inf
+    max_accuracy_train = - math.inf
+    max_accuracy_valid = - math.inf
 
     for epoch in range(epochs):
         # Get start time
         start = time.time()
         # For every batch
-        for batch, (batch_pr, batch_prdesc_shift, batch_prdesc) in enumerate(generate_batch(dataset, Constants.BATCH_SIZE)):
+        for batch, (batch_pr, batch_prdesc_shift, batch_prdesc) in enumerate(generate_batch(dataset_train, Constants.BATCH_SIZE)):
 
             # if batch > 0:
             #     continue
 
             # Train the batch
-            loss, accuracy = train_step(batch_pr, batch_prdesc_shift, batch_prdesc, model, optimizer)
+            train_loss, train_accuracy = train_step(batch_pr, batch_prdesc_shift, batch_prdesc, model, optimizer)
+            train_losses.append(train_loss.item())
+            train_accuracies.append(train_accuracy.item())
+            print('Epoch {} Batch {} Loss {:.4f} Accuracy {:.4f}'.format(epoch + 1, batch, train_loss.item(), train_accuracy.item()))
 
-            losses.append(loss.item())
-            accuracies.append(accuracy.item())
-            print('Epoch {} Batch {} Loss {:.4f} Accuracy {:.4f}'.format(epoch + 1, batch, loss.item(), accuracy.item()))
+            if train_accuracy.item() > max_accuracy_train:
+                max_accuracy_train = train_accuracy.item()
+                torch.save(model.state_dict(), os.path.join('Model_Pytorch', 'model_best_train.pt'))
+                print("Model Train saved.")
 
-            if accuracy > max_accuracy:
-                max_accuracy = accuracy
-                torch.save(model.state_dict(), os.path.join('Model_Pytorch', 'model_best.pt'))
-                print("Model saved.")
-        
+        # validate the model
+        for batch, (batch_pr, batch_prdesc_shift, batch_prdesc) in enumerate(generate_batch(dataset_valid, len(dataset_valid))):
+
+            valid_loss, valid_accuracy = valid_step(batch_pr, batch_prdesc_shift, batch_prdesc, model)
+            valid_losses.append(valid_loss.item())
+            valid_accuracies.append(valid_accuracy.item())
+            print('Epoch {} Validation, Loss {:.4f} Accuracy {}'.format(epoch + 1, valid_loss.item(), valid_accuracy.item()))
+
+            print(valid_accuracy.item(), max_accuracy_valid, valid_accuracy.item() > max_accuracy_valid)
+
+            if valid_accuracy.item() > max_accuracy_valid:
+                max_accuracy_valid = valid_accuracy.item()
+                torch.save(model.state_dict(), os.path.join('Model_Pytorch', 'model_best_valid.pt'))
+                print("Model Valid saved.")
+
 
         print('Time taken for 1 epoch {:.4f} sec\n'.format(time.time() - start))
 
-    return losses, accuracies
+    return train_losses, train_accuracies
 
 if __name__ == '__main__':
     # Load dataset
-    dataset = load_data(os.path.join('Data', 'dataset_train.json'))
+    dataset_train = load_data(os.path.join('Data', 'dataset_train.json'))
+    dataset_valid = load_data(os.path.join('Data', 'dataset_valid.json'))
 
     model = Model(Constants.VOCAB_SIZE, Constants.HIDDEN_DIM, Constants.EMBEDDING_DIM, num_layers=Constants.NUM_LAYERS).to(device)
     model = nn.DataParallel(model)
     optimizer = optim.Adam(model.parameters(), lr=0.001)
 
-    losses, accuracies = main_train(model, dataset, optimizer, epochs=Constants.EPOCHS)
+    losses, accuracies = main_train(model, dataset_train, dataset_valid, optimizer, epochs=Constants.EPOCHS)
 
     plotter(losses, 'losses')
     plotter(accuracies, 'accuracies')
