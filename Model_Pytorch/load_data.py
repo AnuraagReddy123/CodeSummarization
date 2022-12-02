@@ -111,7 +111,11 @@ def load_data(file_path):
     with open(file_path) as f:
         dataset = json.load(f)
     
+    i = 1
     for key in dataset:
+        print(f"---------- {i} -------")
+        i += 1
+
         dataset[key]['body'] = np.array(pad_body(dataset[key]['body']))
         dataset[key]['issue_title'] = np.array(dataset[key]['issue_title'] if len(dataset[key]['issue_title']) > 0 else [1])
 

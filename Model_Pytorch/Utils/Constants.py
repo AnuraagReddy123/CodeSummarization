@@ -1,4 +1,4 @@
-MAX_VOCAB_SIZE = 10000
+MAX_VOCAB_SIZE = 50000
 
 with open('Data/vocab.txt', 'r') as f:
     vocab = eval(f.read())
@@ -9,6 +9,6 @@ HIDDEN_DIM = 128
 MAX_COMMITS = 10
 MAX_LEN = 100
 MAX_TREE_DEPTH = 10
-EPOCHS = 10
-BATCH_SIZE = 2
-NUM_LAYERS = 3
+EPOCHS = 100
+BATCH_SIZE = 8
+NUM_LAYERS = 2

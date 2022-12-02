@@ -82,6 +82,7 @@ def train_step(input_pr, target_prdesc_shift, target_prdesc, model: Model, optim
         decoder: The decoder
         optimizer: The optimizer
     '''
+    # print("in train step")
     model.train()
 
     logits = model(input_pr, target_prdesc_shift)
@@ -131,6 +132,7 @@ def main_train(model: Model, dataset_train, dataset_valid, optimizer, epochs):
     max_accuracy_valid = - math.inf
 
     for epoch in range(epochs):
+        # print(f"epoch: {epoch+1}")
         # Get start time
         start = time.time()
         # For every batch
@@ -138,6 +140,7 @@ def main_train(model: Model, dataset_train, dataset_valid, optimizer, epochs):
 
             # if batch > 0:
             #     continue
+            # print(f"batch: {batch}")
 
             # Train the batch
             train_loss, train_accuracy = train_step(batch_pr, batch_prdesc_shift, batch_prdesc, model, optimizer)
@@ -175,9 +178,13 @@ if __name__ == '__main__':
     dataset_train = load_data(os.path.join('Data', 'dataset_train.json'))
     dataset_valid = load_data(os.path.join('Data', 'dataset_valid.json'))
 
+    print("loaded data.")
+
     model = Model(Constants.VOCAB_SIZE, Constants.HIDDEN_DIM, Constants.EMBEDDING_DIM, num_layers=Constants.NUM_LAYERS).to(device)
     model = nn.DataParallel(model)
     optimizer = optim.Adam(model.parameters(), lr=0.001)
+
+    print("created model.")
 
     losses, accuracies = main_train(model, dataset_train, dataset_valid, optimizer, epochs=Constants.EPOCHS)
 
