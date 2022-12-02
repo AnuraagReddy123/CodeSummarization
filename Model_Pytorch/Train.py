@@ -15,7 +15,6 @@ import torch.optim as optim
 import math
 import matplotlib.pyplot as plt
 
-
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(device)
 
@@ -153,20 +152,26 @@ def main_train(model: Model, dataset_train, dataset_valid, optimizer, epochs):
                 torch.save(model.state_dict(), os.path.join('Model_Pytorch', 'model_best_train.pt'))
                 print("Model Train saved.")
 
+        valid_acc_sum = 0.0
+        num_valid_batches = math.ceil(len(dataset_valid)/8)
         # validate the model
-        for batch, (batch_pr, batch_prdesc_shift, batch_prdesc) in enumerate(generate_batch(dataset_valid, len(dataset_valid))):
+        for batch, (batch_pr, batch_prdesc_shift, batch_prdesc) in enumerate(generate_batch(dataset_valid, Constants.BATCH_SIZE)):
 
             valid_loss, valid_accuracy = valid_step(batch_pr, batch_prdesc_shift, batch_prdesc, model)
             valid_losses.append(valid_loss.item())
             valid_accuracies.append(valid_accuracy.item())
-            print('Epoch {} Validation, Loss {:.4f} Accuracy {}'.format(epoch + 1, valid_loss.item(), valid_accuracy.item()))
+            print('Validation: Epoch {} Batch {} Loss {:.4f} Accuracy {:.4f}'.format(epoch + 1, batch, valid_loss.item(), valid_accuracy.item()))
 
-            print(valid_accuracy.item(), max_accuracy_valid, valid_accuracy.item() > max_accuracy_valid)
+            valid_acc_sum += valid_accuracy.item()
 
-            if valid_accuracy.item() > max_accuracy_valid:
-                max_accuracy_valid = valid_accuracy.item()
-                torch.save(model.state_dict(), os.path.join('Model_Pytorch', 'model_best_valid.pt'))
-                print("Model Valid saved.")
+            # print(valid_accuracy.item(), max_accuracy_valid, valid_accuracy.item() > max_accuracy_valid)
+
+        avg_valid_acc = valid_acc_sum/num_valid_batches
+        if avg_valid_acc > max_accuracy_valid:
+        #if valid_accuracy.item() > max_accuracy_valid:
+            max_accuracy_valid = avg_valid_acc
+            torch.save(model.state_dict(), os.path.join('Model_Pytorch', 'model_best_valid.pt'))
+            print("Model Valid saved.")
 
 
         print('Time taken for 1 epoch {:.4f} sec\n'.format(time.time() - start))
