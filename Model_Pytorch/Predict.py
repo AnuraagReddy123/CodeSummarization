@@ -41,6 +41,11 @@ if __name__=='__main__':
 
     r = Rouge()
 
+    bleu_total = 0.0
+    rouge_1_total = 0.0
+    rouge_2_total = 0.0
+    rouge_l_total = 0.0
+
     for i in range(len(batch_pr)):
 
         gt = tensor_to_text(batch_prdesc[i], vocab)
@@ -54,3 +59,14 @@ if __name__=='__main__':
 
         print(f"Ground Truth:\n{gt}\n\nPrediction:\n{pred}\n")
         print(f"Bleu: {bleu}\nRouge-1: {r_score['rouge-1']['f']}\nRouge-2: {r_score['rouge-2']['f']}\nRouge-L: {r_score['rouge-l']['f']}\n\n--------------------\n\n")
+
+        bleu_total += bleu
+        rouge_1_total += r_score['rouge-1']['f']
+        rouge_2_total += r_score['rouge-2']['f']
+        rouge_l_total += r_score['rouge-l']['f']
+    
+    bleu_total /= len(batch_pr)
+    rouge_1_total /= len(batch_pr)
+    rouge_2_total /= len(batch_pr)
+    rouge_l_total /= len(batch_pr)
+    print(f"Total Avg Results:\n\nBleu: {bleu_total}\nRouge-1: {rouge_1_total}\nRouge-2: {rouge_2_total}\nRouge-L: {rouge_l_total}\n")
