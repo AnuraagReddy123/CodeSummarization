@@ -24,7 +24,7 @@ if __name__=='__main__':
 
     n_points = int(sys.argv[1])
 
-    dataset_test = load_data(os.path.join('Data', 'dataset_test.json'))
+    dataset_test = load_data(os.path.join('Data', 'dataset_train.json'))
 
     batch_pr, batch_prdesc_shift, batch_prdesc = next(generate_batch(dataset_test, n_points))
 
